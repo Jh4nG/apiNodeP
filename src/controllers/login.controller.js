@@ -19,8 +19,10 @@ const startSession = async (req,res)=>{
         }else{
             // Se realiza consulta para saber si el cliente existe
             result = await connection.query(`SELECT * FROM ${table_client} WHERE cedula_nit = ?`,user);
-            var tipousuario = result.length > 0 ? "S" : "";
-            var { password, estado, fecha_vence, fecha_acepta } = result[0];
+            if(result.length > 0){
+                var tipousuario = result.length > 0 ? "S" : "";
+                var { password, estado, fecha_vence, fecha_acepta } = result[0];
+            }
         }
         
         if(result.length == 0){ // Si result no tiene resultados, el usuario no existe
