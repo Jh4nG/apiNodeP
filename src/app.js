@@ -1,15 +1,23 @@
-import express  from "express";
-import morgan from "morgan";
+const express = require ("express");
+const morgan = require ("morgan");
+
+// import express from "express";
+// import morgan from "morgan";
 
 // Routes
-import lenguageRoutes from "./routes/language.routes";
-import loginRoutes from "./routes/login.routes";
+const lenguageRoutes = require("./routes/language.routes");
+const loginRoutes = require ("./routes/login.routes");
 
+// import lenguageRoutes from "./routes/language.routes";
+// import loginRoutes from "./routes/login.routes";
 
 const app = express();
 
 // Settings
 app.set("port",4000);
+app.use(cors({
+    origin : 'http://localhost:4000'
+}));
 
 // Middlewares
 app.use(morgan("dev"));
@@ -19,4 +27,4 @@ app.use(express.json());
 app.use("/api/language", lenguageRoutes);
 app.use("/api/login", loginRoutes);
 
-export default app;
+module.exports = app;

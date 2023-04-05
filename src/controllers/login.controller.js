@@ -1,4 +1,6 @@
-import { getConnection } from "./../database/database";
+const { getConnection } = require("./../database/database");
+
+// import { getConnection } from "./../database/database";
 
 const table_users = "adm_usuarios";
 const table_client = "adm_clientes";
@@ -34,10 +36,13 @@ const startSession = async (req,res)=>{
             switch(tipousuario){
                 case 'S': // Suscriptor
                     const d = new Date();
-                    const actual= `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${d.getDate()}`;
+                    const f_actual= `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
+                    const f_actual_all = `${d} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
                     if(estado == 'A'){
-                        if(fecha_vence != '0000-00-00' && actual > fecha_vence){ // Si pasa, se envía correo por terminación de contrato
-                            
+                        if(fecha_vence != '0000-00-00' && f_actual > fecha_vence){
+                            // Se actualiza el cliente a suspendido
+                            result = await connection.query(`UPDATE ${table_client} SET estado = 'S', fecha_modi = ? WHERE cedula_nit = ?`,[f_actual_all,user]);
+                            // Se envía correo por terminación de contrato (PENDIENTE)
                         }
                         var terminos_ok = true;
                         if(fecha_acepta == "0000-00-00 00:00:00"){
@@ -60,6 +65,6 @@ const startSession = async (req,res)=>{
     }
 }
 
-export const methods = {
+module.exports = {
     startSession
 }

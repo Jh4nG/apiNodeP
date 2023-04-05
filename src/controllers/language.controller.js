@@ -1,4 +1,5 @@
-import { getConnection } from "./../database/database";
+const { getConnection } = require("./../database/database");
+// import { getConnection } from "./../database/database";
 
 const getLanguages = async (req,res)=>{
     try{
@@ -85,7 +86,7 @@ const deleteLanguage = async (req,res)=>{
     }
 }
 
-export const methods = {
+module.exports = {
     getLanguages,
     addLanguage,
     getLanguage,

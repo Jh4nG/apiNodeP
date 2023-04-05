@@ -1,5 +1,8 @@
-import { request, response, Router } from "express";
-import { methods as languageController } from "./../controllers/language.controller";
+const { request, response, Router } = require ("express");
+const languageController = require ("./../controllers/language.controller");
+
+// import { request, response, Router } from "express";
+// import { methods as languageController } from "./../controllers/language.controller";
 
 const router = Router();
 
@@ -9,4 +12,4 @@ router.post("/", languageController.addLanguage);
 router.delete("/:id", languageController.deleteLanguage);
 router.put("/:id", languageController.updateLanguage);
 
-export default router;
+module.exports = router;
