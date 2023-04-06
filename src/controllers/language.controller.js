@@ -1,5 +1,4 @@
 const { getConnection } = require("./../database/database");
-// import { getConnection } from "./../database/database";
 
 const getLanguages = async (req,res)=>{
     try{

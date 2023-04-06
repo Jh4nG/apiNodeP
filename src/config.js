@@ -1,5 +1,4 @@
 const { config } = require("dotenv");
-// import { config } from "dotenv";
 
 config();
 
