@@ -1,6 +1,6 @@
 const { getConnection } = require("./../database/database");
-const globalF = require("./../assets/global.controller");
-const { fecha_actual, fecha_actual_all } = globalF;
+const global_c = require("./../assets/global.controller");
+const { fecha_actual, fecha_actual_all } = global_c;
 
 const table_users = "adm_usuarios";
 const table_client = "adm_clientes";
@@ -40,29 +40,67 @@ const startSession = async (req,res)=>{
                         if(fecha_vence != '0000-00-00' && fecha_actual > fecha_vence){
                             // Se actualiza el cliente a suspendido
                             result = await connection.query(`UPDATE ${table_client} SET estado = 'S', fecha_modi = ? WHERE cedula_nit = ?`,[fecha_actual_all,user]);
+                            await update_token(1,user,tipousuario); // Actualiza para tener un token
                             // Se envía correo por terminación de contrato (PENDIENTE)
+                            res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario termina contrato" });
+                            return;
                         }
                         var terminos_ok = true;
                         if(fecha_acepta == "0000-00-00 00:00:00"){
                             terminos_ok = false;
                         }
-                        res.status(200).json({ status : 200, redirect : true, tipousuario, terminos_ok });
+                        let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                        res.status(200).json({ status : 200, redirect : true, tipousuario, terminos_ok, token });
                         return;
                     }
+                    await update_token(1,user,tipousuario); // Actualiza para tener un token
                     res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario suspendido o no autorizado." });
                     return;
                 default: // Admin u operador
-                    res.status(200).json({ status : 200, redirect : true, tipousuario });
+                    let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                    res.status(200).json({ status : 200, redirect : true, tipousuario, token });
                     return;
             }
         }else{
-            res.json(res.status(400).json({ status : 400, redirect : false, msg : "Usuario o contraseña incorrectos" }));
+            update_token(1,user,tipousuario); // Actualiza para tener un token
+            return res.status(400).json({ status : 400, redirect : false, msg : "Usuario o contraseña incorrectos" });
         }
     }catch(error){
-        res.json({ status : 500, tipousuario:"", redirect : false, msg : error.message});
+        return res.json({ status : 500, tipousuario:"", redirect : false, msg : error.message});
     }
 }
 
+const logOut = async (req,res)=>{
+    try{
+        const { user, tipousuario } = req.params;
+        if(user === undefined || tipousuario === undefined){
+            res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
+            return;
+        }
+        update_token(1,user,tipousuario); // Actualiza para tener un token
+        return res.status(200).json({ status : 200, msg : "Sesión finalizada" });
+    }catch(error){
+        res.json({ status : 500, msg : error.message});
+    }
+}
+
+const update_token = async (type = 1,user,tipousuario) =>{
+    const connection = await getConnection();
+    let token = global_c.generate_token(50);
+    let table = (tipousuario == 'S') ? table_client : table_users;
+    let campo = (tipousuario == 'S') ? 'cedula_nit' : 'username';
+    switch(type){
+        case 1: // actualiza token a 0
+            await connection.query(`UPDATE ${table} SET token = NULL WHERE ${campo} = ?`,user);
+            break;
+        default: // actualiza token a string
+            await connection.query(`UPDATE ${table} SET token = ? WHERE ${campo} = ?`,[token,user]);
+            break;
+    }
+    return token;
+}
+
 module.exports = {
-    startSession
+    startSession,
+    logOut
 }
