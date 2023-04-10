@@ -1,5 +1,6 @@
 const { getConnection } = require("./../database/database");
-const globalF = require("./../assets/global.controller");
+const global_c = require("./../assets/global.controller");
+const { fecha_actual, fecha_actual_all } = global_c;
 
 
 const getUser = async (req,res) =>{
@@ -25,6 +26,21 @@ const getUser = async (req,res) =>{
     } 
 }
 
+const update_terminos = async (req,res) => {
+    try{
+        const connection = await getConnection();
+        const { user} = req.params;
+        const result = await connection.query(`UPDATE adm_clientes SET fecha_modi = ?, fecha_acepta = ? WHERE cedula_nit = ?`, [fecha_actual_all,fecha_actual_all,user]);
+        if(result.affectedRows == 1){
+            return res.json({ status : 200, msg : "Actualizado correctamente"});
+        }
+        return res.json({ status : 400, msg : "Error en actualización. Vuelva a intentar"});
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
 module.exports = {
-    getUser
+    getUser,
+    update_terminos
 }

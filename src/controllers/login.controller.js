@@ -10,8 +10,7 @@ const startSession = async (req,res)=>{
         const connection = await getConnection();
         const { user, password : getPassword } = req.body;
         if(user === undefined || getPassword === undefined){
-            res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
-            return;
+            return res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
         }
         // Si existe el usuario en table_users entonces es admin o operador
         var result = await connection.query(`SELECT * FROM ${table_users} WHERE username = ?`,user);
@@ -28,8 +27,7 @@ const startSession = async (req,res)=>{
         }
         
         if(result.length == 0){ // Si result no tiene resultados, el usuario no existe
-            res.status(400).json({status: 400, msg : 'El USUARIO no esta creado en la base de datos de Provired Colombia !!!'});
-            return;
+            return res.status(400).json({status: 400, msg : 'El USUARIO no esta creado en la base de datos de Provired Colombia !!!'});
         }
         // Si pasa, se valida contraseña a partir de la data
         if(password === getPassword){
@@ -40,29 +38,25 @@ const startSession = async (req,res)=>{
                         if(fecha_vence != '0000-00-00' && fecha_actual > fecha_vence){
                             // Se actualiza el cliente a suspendido
                             result = await connection.query(`UPDATE ${table_client} SET estado = 'S', fecha_modi = ? WHERE cedula_nit = ?`,[fecha_actual_all,user]);
-                            await update_token(1,user,tipousuario); // Actualiza para tener un token
+                            // await update_token(1,user,tipousuario); // Actualiza para tener un token
                             // Se envía correo por terminación de contrato (PENDIENTE)
-                            res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario termina contrato" });
-                            return;
+                            return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario termina contrato" });
                         }
                         var terminos_ok = true;
-                        if(fecha_acepta == "0000-00-00 00:00:00"){
+                        if(fecha_acepta == "0000-00-00 00:00:00" || fecha_acepta == null){
                             terminos_ok = false;
                         }
-                        let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
-                        res.status(200).json({ status : 200, redirect : true, tipousuario, terminos_ok, token });
-                        return;
+                        // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                        return res.status(200).json({ status : 200, redirect : true, tipousuario, terminos_ok });
                     }
-                    await update_token(1,user,tipousuario); // Actualiza para tener un token
-                    res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario suspendido o no autorizado." });
-                    return;
+                    // update_token(1,user,tipousuario); // Actualiza para tener un token
+                    return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario suspendido o no autorizado." });
                 default: // Admin u operador
-                    let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
-                    res.status(200).json({ status : 200, redirect : true, tipousuario, token });
-                    return;
+                    // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                    return res.status(200).json({ status : 200, redirect : true, tipousuario });
             }
         }else{
-            update_token(1,user,tipousuario); // Actualiza para tener un token
+            // update_token(1,user,tipousuario); // Actualiza para tener un token
             return res.status(400).json({ status : 400, redirect : false, msg : "Usuario o contraseña incorrectos" });
         }
     }catch(error){
@@ -74,13 +68,12 @@ const logOut = async (req,res)=>{
     try{
         const { user, tipousuario } = req.params;
         if(user === undefined || tipousuario === undefined){
-            res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
-            return;
+            return res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
         }
-        update_token(1,user,tipousuario); // Actualiza para tener un token
+        // update_token(1,user,tipousuario); // Actualiza para tener un token
         return res.status(200).json({ status : 200, msg : "Sesión finalizada" });
     }catch(error){
-        res.json({ status : 500, msg : error.message});
+        return res.json({ status : 500, msg : error.message});
     }
 }
 

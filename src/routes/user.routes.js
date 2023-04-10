@@ -6,6 +6,7 @@ const middleware = require("./../assets/middleware");
 
 const router = Router();
 
-router.get("/:user/:tipousuario", middleware.ensureAuthenticated, userController.getUser);
+router.get("/getUser/:user/:tipousuario", middleware.ensureAuthenticated, userController.getUser);
+router.get("/terminos/:user", middleware.ensureAuthenticated, userController.update_terminos);
 
 module.exports = router;

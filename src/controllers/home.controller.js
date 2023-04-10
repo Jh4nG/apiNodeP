@@ -6,10 +6,9 @@ const getVencimientos = async (req,res) =>{
     try{
         const connection = await getConnection();
         const { user } = req.params;
-        const result = connection.query(`SELECT * FROM adm_vencimiento_terminos WHERE 
-                                        username= ? AND 
-                                        DATE(fecha_vence_terminos) >= ? ORDER BY
-                                        despacho, radicacion, fecha_vence_terminos DESC
+        const result = await connection.query(`SELECT * FROM adm_vencimiento_terminos 
+                                        WHERE username= ? 
+                                        ORDER BY despacho, radicacion, fecha_vence_terminos DESC
                                         LIMIT 5`,[user,fecha_actual]);
         if(result.length > 0){
             return res.json({ status : 200, data : result[0]});

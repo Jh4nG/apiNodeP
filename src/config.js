@@ -6,5 +6,6 @@ module.exports = {
     host : process.env.host,
     database : process.env.database,
     user : process.env.user,
-    password : process.env.password
+    password : process.env.password,
+    hash : process.env.hash
 }
