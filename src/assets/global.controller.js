@@ -5,7 +5,7 @@ const d = new Date();
 const fecha_actual= `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
 const fecha_actual_all = `${d} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
 
-function generate_token(length){
+const generate_token = (length) => {
     //edit the token allowed characters
     var a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".split("");
     var b = [];  
@@ -44,6 +44,8 @@ const verifyToken = async (req,res,next) => {
         return res.status(500).json({status : 500, msg : error.message});
     }
 }
+
+
 
 const sendEmail = () => {
 
