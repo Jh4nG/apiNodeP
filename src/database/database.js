@@ -9,7 +9,11 @@ const connection=mysql.createConnection({
 });
 
 const getConnection = () =>{
-    return connection;
+    try{
+        return connection;
+    }catch(error){
+        return error.message;
+    }
 }
 
 module.exports = {

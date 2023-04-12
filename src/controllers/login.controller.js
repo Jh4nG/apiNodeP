@@ -1,6 +1,6 @@
 const { getConnection } = require("./../database/database");
 const global_c = require("./../assets/global.controller");
-const { fecha_actual, fecha_actual_all } = global_c;
+const { fecha_actual, fecha_actual_all, correo_corporativo } = global_c;
 
 const table_users = "adm_usuarios";
 const table_client = "adm_clientes";
@@ -22,7 +22,7 @@ const startSession = async (req,res)=>{
             result = await connection.query(`SELECT * FROM ${table_client} WHERE cedula_nit = ?`,user);
             if(result.length > 0){
                 var tipousuario = result.length > 0 ? "S" : "";
-                var { password, estado, fecha_vence, fecha_acepta } = result[0];
+                var { password, estado, fecha_vence, fecha_acepta, nombre, direccion_of, telefono_of } = result[0];
             }
         }
         
@@ -39,21 +39,33 @@ const startSession = async (req,res)=>{
                             // Se actualiza el cliente a suspendido
                             result = await connection.query(`UPDATE ${table_client} SET estado = 'S', fecha_modi = ? WHERE cedula_nit = ?`,[fecha_actual_all,user]);
                             // await update_token(1,user,tipousuario); // Actualiza para tener un token
-                            // Se envía correo por terminación de contrato (PENDIENTE)
-                            return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario termina contrato" });
+                            // Se envía correo por terminación de contrato
+                            const { valor : correo_comercial } = await global_c.getParameter(5);
+                            let html = `
+                                <h3>Suscriptor: ${nombre}</h3>
+                                <p style="color: #000 !important;">Direccion Oficina: ${direccion_of}</p>
+                                <p style="color: #000 !important;">Teléfono: ${telefono_of}</p>
+                                <p style="color: #000 !important;">Fecha vencimiento: ${fecha_vence}</p>
+                            `;
+                            const { valor, parametro } = await global_c.getParameter(1);
+                            await global_c.sendEmail(correo_corporativo, correo_comercial, parametro, html);
+                            return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : valor });
                         }
                         var terminos_ok = true;
+                        let msg = "";
                         if(fecha_acepta == "0000-00-00 00:00:00" || fecha_acepta == null){
                             terminos_ok = false;
+                            const { valor, parametro } = await global_c.getParameter(8);
+                            msg = valor;
                         }
                         // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
-                        return res.status(200).json({ status : 200, redirect : true, tipousuario, terminos_ok });
+                        return res.status(200).json({ status : 200, user, redirect : true, tipousuario, terminos_ok, msg });
                     }
                     // update_token(1,user,tipousuario); // Actualiza para tener un token
                     return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario suspendido o no autorizado." });
                 default: // Admin u operador
                     // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
-                    return res.status(200).json({ status : 200, redirect : true, tipousuario });
+                    return res.status(200).json({ status : 200, user, redirect : true, tipousuario });
             }
         }else{
             // update_token(1,user,tipousuario); // Actualiza para tener un token
