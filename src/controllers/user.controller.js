@@ -15,6 +15,7 @@ const getUser = async (req,res) =>{
         let campo = (tipousuario == 'S') ? 'cedula_nit' : 'username';
         var result = await connection.query(`SELECT * FROM ${table} WHERE ${campo} = ?`,user);
         if(result.length > 0){
+            delete result[0]['password_ok'];
             delete result[0]['password'];
             delete result[0]['token'];
             res.status(200).json({ status : 200, user, tipousuario, data : result[0] });

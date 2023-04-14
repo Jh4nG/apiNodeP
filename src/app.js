@@ -6,6 +6,7 @@ const cors = require ('cors');
 const loginRoutes = require ("./routes/login.routes");
 const userRoutes = require ("./routes/user.routes");
 const homeRoutes = require ("./routes/home.routes");
+const audienciasRoutes = require ("./routes/audiencias/audiencias.routes");
 
 const app = express();
 
@@ -23,5 +24,6 @@ app.use(express.json());
 app.use("/api/login", loginRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/audiencias", audienciasRoutes);
 
 module.exports = app;
