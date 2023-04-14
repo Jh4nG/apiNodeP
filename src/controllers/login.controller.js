@@ -105,7 +105,12 @@ const update_token = async (type = 1,user,tipousuario) =>{
     return token;
 }
 
-module.exports = {
-    startSession,
-    logOut
+try{
+    module.exports = {
+        startSession,
+        logOut
+    }
+}catch(error){
+    console.log(error.message);
+    module.exports = error.message;
 }

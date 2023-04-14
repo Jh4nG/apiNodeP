@@ -4,9 +4,14 @@ const userController = require ("./../controllers/user.controller");
 // Middleware
 const middleware = require("./../assets/middleware");
 
-const router = Router();
+try{
+    const router = Router();
 
-router.get("/getUser/:user/:tipousuario", middleware.ensureAuthenticated, userController.getUser);
-router.get("/terminos/:user", middleware.ensureAuthenticated, userController.update_terminos);
+    router.get("/getUser/:user/:tipousuario", middleware.ensureAuthenticated, userController.getUser);
+    router.get("/terminos/:user", middleware.ensureAuthenticated, userController.update_terminos);
 
-module.exports = router;
+    module.exports = router;
+}catch(error){
+    console.log(error.message);
+    module.exports = error.message;
+}

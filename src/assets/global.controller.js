@@ -8,6 +8,33 @@ const d = new Date();
 const fecha_actual = `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
 const fecha_actual_all = `${fecha_actual} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
 
+
+const msgInsertOk = 'agregado/a correctamente';
+const msgInsertErr = 'Error en inserción de ';
+const msgUpdateOk = 'actualizado/a correctamente';
+const msgUpdateErr = 'Error en acutalización de ';
+const msgDeleteOk = 'eliminado/a correctamente';
+const msgDeleteErr = 'Error en eliminación de ';
+const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el administrado.';
+const msgDataIncorrecta = 'Data incorrecta o incompleta.';
+
+const validateParams = (params = {}) =>{
+    try{
+        let valida = [];
+        Object.keys(params).forEach(element => {
+            if(params[element] == undefined || params[element] == ''){
+                return valida.push(`El parámetro "${element}" es requerido`);
+            }
+        });
+        if(valida.length > 0){
+            return {status : false, msg : valida.join('. ')};
+        }
+        return {status : true};
+    }catch(error){
+        return {status : false, msg: error.message};
+    }
+}
+
 const generate_token = (length) => {
     //edit the token allowed characters
     var a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".split("");
@@ -106,7 +133,16 @@ module.exports = {
     generate_token,
     verifyToken,
     getParameter,
+    validateParams,
     correo_corporativo,
     fecha_actual,
-    fecha_actual_all
+    fecha_actual_all,
+    msgInsertOk,
+    msgInsertErr,
+    msgUpdateOk,
+    msgUpdateErr,
+    msgDeleteOk,
+    msgDeleteErr,
+    msgTry,
+    msgDataIncorrecta
 }
