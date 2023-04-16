@@ -128,12 +128,19 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
     }
 }
 
+const getFechaConvert = (d) => {
+    const fecha = `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
+    const fecha_full = `${fecha_actual} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
+    return {fecha, fecha_full};
+}
+
 module.exports = {
     sendEmail,
     generate_token,
     verifyToken,
     getParameter,
     validateParams,
+    getFechaConvert,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

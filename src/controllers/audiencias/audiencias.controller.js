@@ -116,23 +116,29 @@ const setDetalleEvento = async (type = 0, data = {}) =>{
             return false;
         }
         const {nameCiudad, nameDespacho, idplanilla, radicacion, demandante, demandado} = result[0];
-        
+
+        let start = new Date(`${fecha_vence_terminos} 00:00:00`);
+        let end = new Date(`${fecha_vence_terminos} 00:00:00`);
+        end.setDate(d.getDate() + 1); // se le suma un día a la fecha
+        start = global_c.getFechaConvert(start);
+        end = global_c.getFechaConvert(end);
+
         let title = `Despacho: ${nameDespacho}, Ciudad : ${nameCiudad}, Radicado: ${radicacion}, Demandante: ${demandante}, Demandado: ${demandado}, Detalle: ${terminos.substr(0,255)}`;
         title = string.substr(0,300);
         let sql = "";
         let dataQuery = [];
         switch(type){
             case 1: // Insert
-                var {  color, start, end, idplanilla } = data;
+                var { color } = data;
                 sql = "INSERT INTO adm_events";
                 break;
             case 2 : // Update
-                var { start, end, idplanilla } = data;
                 dataQuery = [title, start, end, idplanilla, username];
                 sql = "UPDATE adm_events SET title = ?, start = ?, end = ? WHERE idplanilla = ? AND username = ?";
                 break;
             case 3 : // Delete
-                sql = "DELETE FROM adm_events WHERE idplanilla = ?";
+                dataQuery = [idplanilla, username];
+                sql = "DELETE FROM adm_events WHERE idplanilla = ? AND username = ?";
             default: 
                 break;
         }
