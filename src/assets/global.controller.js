@@ -10,11 +10,11 @@ const fecha_actual_all = `${fecha_actual} ${(d.getHours() < 10)? `0${d.getHours(
 
 
 const msgInsertOk = 'agregado/a correctamente';
-const msgInsertErr = 'Error en inserción de ';
+const msgInsertErr = 'Error en inserción de';
 const msgUpdateOk = 'actualizado/a correctamente';
-const msgUpdateErr = 'Error en acutalización de ';
+const msgUpdateErr = 'Error en acutalización de';
 const msgDeleteOk = 'eliminado/a correctamente';
-const msgDeleteErr = 'Error en eliminación de ';
+const msgDeleteErr = 'Error en eliminación de';
 const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el administrado.';
 const msgDataIncorrecta = 'Data incorrecta o incompleta.';
 
