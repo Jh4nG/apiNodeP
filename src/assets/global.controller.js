@@ -5,7 +5,7 @@ const { getConnection } = require("./../database/database");
 
 const correo_corporativo = 'webmaster@proviredcolombia.com';
 const d = new Date();
-const fecha_actual = `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
+const fecha_actual = `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()+1}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
 const fecha_actual_all = `${fecha_actual} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
 
 
@@ -128,9 +128,9 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
     }
 }
 
-const getFechaConvert = (d) => {
-    const fecha = `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
-    const fecha_full = `${fecha_actual} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
+const getFechaConvert = (date = new Date()) => {
+    const fecha = `${date.getFullYear()}-${(date.getMonth()+1 < 10)? `0${(date.getMonth()+1)}` : date.getMonth()+1}-${(date.getDate() < 10)? `0${date.getDate()}`:date.getDate()}`;
+    const fecha_full = `${fecha} ${(date.getHours() < 10)? `0${date.getHours()}`:date.getHours()}:${(date.getMinutes() < 10)? `0${date.getMinutes()}`:date.getMinutes()}:${(date.getSeconds() < 10)? `0${date.getSeconds()}`:date.getSeconds()}`;
     return {fecha, fecha_full};
 }
 

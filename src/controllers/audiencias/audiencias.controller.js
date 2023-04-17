@@ -70,6 +70,10 @@ const getAudienciasId = async (req,res) =>{
     }
 }
 
+const insertAudiencias = async (req,res) => {
+    
+}
+
 const updateAudiencias = async (req,res)=>{
     try{
         const connection = await getConnection();
@@ -92,10 +96,11 @@ const updateAudiencias = async (req,res)=>{
                                                     AND id_vencimiento = ?`,[fecha_vence_terminos,descripcion_vence_terminos,username,id_vencimiento]);
             if(query.affectedRows > 0){
                 let data = {
+                    fecha_vence_terminos,
                     terminos: descripcion_vence_terminos,
                     username,
                     id_vencimiento};
-                let evento = await setDetalleEvento(2,data);
+                let evento = await setDetalleEvento('Update',data);
                 return res.status(200).json({status : 200, msg : `Audiencia ${msgUpdateOk}`, msgEvento : evento});
             }
             return res.status(400).json({status : 400, msg : `${msgUpdateErr} audiencia. ${msgTry}`, msgQuery : query.message});
@@ -106,7 +111,31 @@ const updateAudiencias = async (req,res)=>{
     }
 }
 
-const setDetalleEvento = async (type = 0, data = {}) =>{
+const deleteAudiencias = async (req,res)=>{
+    try{
+        const connection = await getConnection();
+        const { username, id_vencimiento } = req.body;
+
+        let data = {
+            fecha_vence_terminos : '',
+            terminos : '',
+            username,
+            id_vencimiento
+        }
+        let evento = await setDetalleEvento('Delete',data);
+        const result = await connection.query(`DELETE FROM adm_vencimiento_terminos
+                                                WHERE username = ?
+                                                AND id_vencimiento = ?`,[username, id_vencimiento]);
+        if(result.affectedRows > 0){
+            return res.status(200).json({status : 200, msg : `Audiencia ${msgDeleteOk}`, msgEvento : evento});
+        }
+        return res.status(400).json({status : 400, msg : `${msgDeleteErr} audiencia. ${msgTry}`});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message });
+    }
+}
+
+const setDetalleEvento = async (type = '', data = {}) =>{
     try{
         const connection = await getConnection();
         const { fecha_vence_terminos, terminos, username, id_vencimiento } = data;
@@ -119,24 +148,25 @@ const setDetalleEvento = async (type = 0, data = {}) =>{
 
         let start = new Date(`${fecha_vence_terminos} 00:00:00`);
         let end = new Date(`${fecha_vence_terminos} 00:00:00`);
-        end.setDate(d.getDate() + 1); // se le suma un día a la fecha
-        start = global_c.getFechaConvert(start);
-        end = global_c.getFechaConvert(end);
+        end.setDate(start.getDate() + 1); // Se le suma un día a la fecha
+        start = global_c.getFechaConvert(start).fecha_full;
+        end = global_c.getFechaConvert(end).fecha_full;
 
         let title = `Despacho: ${nameDespacho}, Ciudad : ${nameCiudad}, Radicado: ${radicacion}, Demandante: ${demandante}, Demandado: ${demandado}, Detalle: ${terminos.substr(0,255)}`;
-        title = string.substr(0,300);
+        title = title.substr(0,300);
         let sql = "";
         let dataQuery = [];
         switch(type){
-            case 1: // Insert
+            case 'Insert': // Insert
                 var { color } = data;
-                sql = "INSERT INTO adm_events";
+                dataQuery = [title, color, start, end, username, idplanilla];
+                sql = "INSERT INTO adm_events(title, color, start, end, username, idplanilla) VALUES(?,?,?,?,?,?)";
                 break;
-            case 2 : // Update
+            case 'Update' : // Update
                 dataQuery = [title, start, end, idplanilla, username];
                 sql = "UPDATE adm_events SET title = ?, start = ?, end = ? WHERE idplanilla = ? AND username = ?";
                 break;
-            case 3 : // Delete
+            case 'Delete' : // Delete
                 dataQuery = [idplanilla, username];
                 sql = "DELETE FROM adm_events WHERE idplanilla = ? AND username = ?";
             default: 
@@ -160,7 +190,8 @@ try{
         getAudiencias,
         getVencimientos,
         getAudienciasId,
-        updateAudiencias
+        updateAudiencias,
+        deleteAudiencias
     }
 }catch(error){
     console.log(error.message);

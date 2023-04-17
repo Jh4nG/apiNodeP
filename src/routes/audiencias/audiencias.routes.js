@@ -11,7 +11,7 @@ try{
     router.post("/getAudiencias", middleware.ensureAuthenticated, audienciasController.getAudiencias);
     router.get("/getAudiencias/:username/:id", middleware.ensureAuthenticated, audienciasController.getAudienciasId);
     router.put("/updateAudiencias", middleware.ensureAuthenticated, audienciasController.updateAudiencias);
-
+    router.delete("/deleteAudiencias", middleware.ensureAuthenticated, audienciasController.deleteAudiencias);    
     module.exports = router;
 }catch(error){
     console.log(error.message);
