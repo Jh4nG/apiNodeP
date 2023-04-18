@@ -83,15 +83,12 @@ const getAudienciasId = async (req,res) =>{
 
 const insertAudiencias = async (req,res) => {
     try {
-        const connection = await getConnection();
-        const {  username, ciudad, despacho, radicacion, fecha_registro, user, proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla, idevents } = req.body;
+        const {  username, ciudad, despacho, radicacion,  proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla } = req.body;
         let dataValida = {
             'Usuario' : username,
             'Ciudad' : ciudad,
             'Despacho' : despacho,
             'Radicación' : radicacion,
-            'Fecha Registro' : fecha_registro,
-            'Usuario Suscriptor' : user,
             'Proceso' : proceso,
             'Demandante' : demandante, 
             'Demandado': demandado,
@@ -99,11 +96,32 @@ const insertAudiencias = async (req,res) => {
             'Detalle Audiencia Vencimiento' : descripcion_vence_terminos
         };
         let valida = global_c.validateParams(dataValida);
+        const connection = await getConnection();
         if(valida.status){ // Se inserta
-            const result = await connection.query(``);
+            let dataQuery = [
+                username, ciudad, despacho, radicacion, fecha_actual, username, proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla
+            ];
+            const result = await connection.query(`INSERT INTO adm_vencimiento_terminos( username, ciudad, despacho, radicacion, fecha_registro, usuario, proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla, idevents)
+                                                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)`,dataQuery);
             if(result.affectedRows > 0){
+                let data = {
+                    fecha_vence_terminos,
+                    terminos: descripcion_vence_terminos,
+                    username,
+                    id_vencimiento : result.insertId,
+                    color : "#0071C5"
+                };
+                let evento = await setDetalleEvento('Insert',data);
+                if(evento){
+                    await connection.query(`UPDATE adm_vencimiento_terminos SET idevents = ? WHERE id_vencimiento = ?`, [evento,result.insertId]);
+                    connection.end();
+                    return res.status(200).json({status : 200, msg : `Audiencia ${msgInsertOk}`, msgEvento : evento});
+                }
                 connection.end();
+                return res.status(400).json({status : 400, msg : `${msgInsertErr} evento. ${msgTry}`});
             }
+            connection.end();
+            return res.status(400).json({status : 400, msg : `${msgInsertErr} audiencia. ${msgTry}`});
         }
     } catch (error) {
         return res.status(500).json({ status : 500, msg : error.message });
@@ -112,7 +130,6 @@ const insertAudiencias = async (req,res) => {
 
 const updateAudiencias = async (req,res)=>{
     try{
-        const connection = await getConnection();
         const { username,fecha_vence_terminos,descripcion_vence_terminos,id_vencimiento } = req.body;
         let dataValida = {
             'Usuario' : username,
@@ -121,6 +138,7 @@ const updateAudiencias = async (req,res)=>{
             'Id vencimiento' : id_vencimiento
         };
         let valida = global_c.validateParams(dataValida);
+        const connection = await getConnection();
         if(valida.status){ // Se actualiza
             if(fecha_vence_terminos < fecha_actual){
                 connection.end();
@@ -187,7 +205,7 @@ const setDetalleEvento = async (type = '', data = {}) =>{
             connection.end();
             return false;
         }
-        const {nameCiudad, nameDespacho, idplanilla, radicacion, demandante, demandado} = result[0];
+        const {nameCiudad, nameDespacho, idplanilla, radicacion, demandante, demandado, idevents} = result[0];
 
         let start = new Date(`${fecha_vence_terminos} 00:00:00`);
         let end = new Date(`${fecha_vence_terminos} 00:00:00`);
@@ -210,14 +228,17 @@ const setDetalleEvento = async (type = '', data = {}) =>{
                 sql = "UPDATE adm_events SET title = ?, start = ?, end = ? WHERE idplanilla = ? AND username = ?";
                 break;
             case 'Delete' : // Delete
-                dataQuery = [idplanilla, username];
-                sql = "DELETE FROM adm_events WHERE idplanilla = ? AND username = ?";
+                dataQuery = [idevents, username];
+                sql = "DELETE FROM adm_events WHERE id = ? AND username = ?";
             default: 
                 break;
         }
         const query = await connection.query(sql,dataQuery);
         if(query.affectedRows > 0){
             connection.end();
+            if(type === 'Insert'){
+                return query.insertId;
+            }
             return true;
         }
         connection.end();
