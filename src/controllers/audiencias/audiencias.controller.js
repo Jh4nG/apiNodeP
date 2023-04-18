@@ -19,8 +19,13 @@ const getVencimientos = async (req,res) =>{
                                                 AND DATE(vt.fecha_vence_terminos) >= ?
                                                 ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC
                                                 LIMIT 5`,[user,fecha_actual]);
+        console.log(`${base_query}
+        WHERE vt.username = ? 
+        AND DATE(vt.fecha_vence_terminos) >= ?
+        ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC
+        LIMIT 5`);
         if(result.length > 0){
-            return res.json({ status : 200, data : result[0]});
+            return res.json({ status : 200, data : result});
         }
         return res.json({ status : 200, data : [], msg : "Sin información"});
     }catch(error){
@@ -38,7 +43,7 @@ const getAudiencias = async (req, res) => {
                                                 AND DATE(fecha_vence_terminos) BETWEEN ? AND ? 
                                                 ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`,[username,fi,ff]);
         if(result.length > 0){
-            return res.json({ status : 200, data : result[0]});
+            return res.json({ status : 200, data : result});
         }
         return res.status(200).json({ status : 200, data : [], msg : "Sin información"});
     }catch(error){
