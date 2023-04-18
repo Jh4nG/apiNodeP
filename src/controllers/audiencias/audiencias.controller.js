@@ -25,8 +25,10 @@ const getVencimientos = async (req,res) =>{
         ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC
         LIMIT 5`);
         if(result.length > 0){
+            connection.end();
             return res.json({ status : 200, data : result});
         }
+        connection.end();
         return res.json({ status : 200, data : [], msg : "Sin información"});
     }catch(error){
         res.json({ status : 500, msg : error.message});
@@ -43,8 +45,10 @@ const getAudiencias = async (req, res) => {
                                                 AND DATE(fecha_vence_terminos) BETWEEN ? AND ? 
                                                 ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`,[username,fi,ff]);
         if(result.length > 0){
+            connection.end();
             return res.json({ status : 200, data : result});
         }
+        connection.end();
         return res.status(200).json({ status : 200, data : [], msg : "Sin información"});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
@@ -54,9 +58,11 @@ const getAudiencias = async (req, res) => {
 const getAudienciasIdQuery = async (username = '',id = 0) =>{
     try{
         const connection = await getConnection();
-        return await connection.query(`${base_query}
+        let query = await connection.query(`${base_query}
                                 WHERE username = ? 
                                 AND vt.id_vencimiento = ?`,[username,id]);
+        connection.end();
+        return query;
     }catch(error){
         return [];
     }
@@ -76,7 +82,32 @@ const getAudienciasId = async (req,res) =>{
 }
 
 const insertAudiencias = async (req,res) => {
-    
+    try {
+        const connection = await getConnection();
+        const {  username, ciudad, despacho, radicacion, fecha_registro, user, proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla, idevents } = req.body;
+        let dataValida = {
+            'Usuario' : username,
+            'Ciudad' : ciudad,
+            'Despacho' : despacho,
+            'Radicación' : radicacion,
+            'Fecha Registro' : fecha_registro,
+            'Usuario Suscriptor' : user,
+            'Proceso' : proceso,
+            'Demandante' : demandante, 
+            'Demandado': demandado,
+            'Fecha Audiencia / Vencimiento' : fecha_vence_terminos,
+            'Detalle Audiencia Vencimiento' : descripcion_vence_terminos
+        };
+        let valida = global_c.validateParams(dataValida);
+        if(valida.status){ // Se inserta
+            const result = await connection.query(``);
+            if(result.affectedRows > 0){
+                connection.end();
+            }
+        }
+    } catch (error) {
+        return res.status(500).json({ status : 500, msg : error.message });
+    }
 }
 
 const updateAudiencias = async (req,res)=>{
@@ -92,6 +123,7 @@ const updateAudiencias = async (req,res)=>{
         let valida = global_c.validateParams(dataValida);
         if(valida.status){ // Se actualiza
             if(fecha_vence_terminos < fecha_actual){
+                connection.end();
                 return res.status(400).json({status : 400, msg : 'La fecha de audiencia no puede ser menor a la fecha actual'});
             }
             const query = await connection.query(`UPDATE adm_vencimiento_terminos SET
@@ -106,10 +138,13 @@ const updateAudiencias = async (req,res)=>{
                     username,
                     id_vencimiento};
                 let evento = await setDetalleEvento('Update',data);
+                connection.end();
                 return res.status(200).json({status : 200, msg : `Audiencia ${msgUpdateOk}`, msgEvento : evento});
             }
+            connection.end();
             return res.status(400).json({status : 400, msg : `${msgUpdateErr} audiencia. ${msgTry}`, msgQuery : query.message});
         }
+        connection.end();
         return res.status(400).json({status : 400, msg : valida.msg});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
@@ -132,8 +167,10 @@ const deleteAudiencias = async (req,res)=>{
                                                 WHERE username = ?
                                                 AND id_vencimiento = ?`,[username, id_vencimiento]);
         if(result.affectedRows > 0){
+            connection.end();
             return res.status(200).json({status : 200, msg : `Audiencia ${msgDeleteOk}`, msgEvento : evento});
         }
+        connection.end();
         return res.status(400).json({status : 400, msg : `${msgDeleteErr} audiencia. ${msgTry}`});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
@@ -147,6 +184,7 @@ const setDetalleEvento = async (type = '', data = {}) =>{
         const result = await getAudienciasIdQuery(username,id_vencimiento);
         if(result.length == 0){
             console.log(`Error en obtener data de getAudienciasIdQuery, parametros : ${data.toString()}`);
+            connection.end();
             return false;
         }
         const {nameCiudad, nameDespacho, idplanilla, radicacion, demandante, demandado} = result[0];
@@ -179,11 +217,12 @@ const setDetalleEvento = async (type = '', data = {}) =>{
         }
         const query = await connection.query(sql,dataQuery);
         if(query.affectedRows > 0){
+            connection.end();
             return true;
-        }else{
-            console.log(`Error ejecución de query en tabla adm_events para parametros ${dataQuery.toString()} desde los parámetros ${data.toString()}`);
-            return false;
         }
+        connection.end();
+        console.log(`Error ejecución de query en tabla adm_events para parametros ${dataQuery.toString()} desde los parámetros ${data.toString()}`);
+        return false;
     }catch(error){
         console.log(`Error ejecución ERROR: ${error.message}`);
         return false;
@@ -196,7 +235,8 @@ try{
         getVencimientos,
         getAudienciasId,
         updateAudiencias,
-        deleteAudiencias
+        deleteAudiencias,
+        insertAudiencias
     }
 }catch(error){
     console.log(error.message);

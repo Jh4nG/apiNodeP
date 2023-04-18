@@ -13,8 +13,8 @@ const getUser = async (req,res) =>{
         console.log(dataValida);
         let valida = global_c.validateParams(dataValida);
         if(valida.status == false){
-            res.status(400).json({status: 400, msg : valida.msg});
-            return;
+            connection.end();
+            return res.status(400).json({status: 400, msg : valida.msg});
         }
         let table = (tipousuario == 'S') ? 'adm_clientes' : 'adm_usuarios';
         let campo = (tipousuario == 'S') ? 'cedula_nit' : 'username';
@@ -23,10 +23,11 @@ const getUser = async (req,res) =>{
             delete result[0]['password_ok'];
             delete result[0]['password'];
             delete result[0]['token'];
-            res.status(200).json({ status : 200, user, tipousuario, data : result[0] });
-            return;
+            connection.end();
+            return res.status(200).json({ status : 200, user, tipousuario, data : result[0] });
         }
-        res.status(400).json({ status : 400, msg : msgDataIncorrecta });
+        connection.end();
+        return res.status(400).json({ status : 400, msg : msgDataIncorrecta });
     }catch(error){
         res.json({ status : 500, msg : error.message});
     } 
@@ -38,8 +39,10 @@ const update_terminos = async (req,res) => {
         const { user} = req.params;
         const result = await connection.query(`UPDATE adm_clientes SET fecha_modi = ?, fecha_acepta = ? WHERE cedula_nit = ?`, [fecha_actual_all,fecha_actual_all,user]);
         if(result.affectedRows == 1){
+            connection.end();
             return res.json({ status : 200, msg : `Usuario ${msgUpdateOk}`});
         }
+        connection.end();
         return res.json({ status : 400, msg : `${msgUpdateErr} Usuario. ${msgTry}`});
     }catch(error){
         return res.json({ status : 500, msg : error.message});

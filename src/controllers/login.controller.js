@@ -27,6 +27,7 @@ const startSession = async (req,res)=>{
         }
         
         if(result.length == 0){ // Si result no tiene resultados, el usuario no existe
+            connection.end();
             return res.status(400).json({status: 400, msg : 'El USUARIO no esta creado en la base de datos de Provired Colombia !!!'});
         }
         // Si pasa, se valida contraseña a partir de la data
@@ -49,6 +50,7 @@ const startSession = async (req,res)=>{
                             `;
                             const { valor, parametro } = await global_c.getParameter(1);
                             await global_c.sendEmail(correo_corporativo, correo_comercial, parametro, html);
+                            connection.end();
                             return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : valor });
                         }
                         var terminos_ok = true;
@@ -59,16 +61,20 @@ const startSession = async (req,res)=>{
                             msg = valor;
                         }
                         // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                        connection.end();
                         return res.status(200).json({ status : 200, user, redirect : true, tipousuario, terminos_ok, msg });
                     }
                     // update_token(1,user,tipousuario); // Actualiza para tener un token
+                    connection.end();
                     return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario suspendido o no autorizado." });
                 default: // Admin u operador
                     // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                    connection.end();
                     return res.status(200).json({ status : 200, user, redirect : true, tipousuario });
             }
         }else{
             // update_token(1,user,tipousuario); // Actualiza para tener un token
+            connection.end();
             return res.status(400).json({ status : 400, redirect : false, msg : "Usuario o contraseña incorrectos" });
         }
     }catch(error){

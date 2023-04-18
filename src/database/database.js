@@ -8,7 +8,9 @@ const getConnection = () =>{
             host: config.host,
             database: config.database,
             user: config.user,
-            password: config.password
+            password: config.password,
+            multipleStatements: true,
+            connectionLimit: 1000 // set the maximum number of connections
         });
         return connection;
     }catch(error){

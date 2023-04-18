@@ -12,6 +12,7 @@ try{
     router.get("/getAudiencias/:username/:id", middleware.ensureAuthenticated, audienciasController.getAudienciasId);
     router.put("/updateAudiencias", middleware.ensureAuthenticated, audienciasController.updateAudiencias);
     router.delete("/deleteAudiencias", middleware.ensureAuthenticated, audienciasController.deleteAudiencias);    
+    router.post("/insertAudiencias", middleware.ensureAuthenticated, audienciasController.insertAudiencias);
     module.exports = router;
 }catch(error){
     console.log(error.message);
