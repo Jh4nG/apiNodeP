@@ -6,6 +6,7 @@ const cors = require ('cors');
 const loginRoutes = require ("./routes/login.routes");
 const userRoutes = require ("./routes/user.routes");
 const audienciasRoutes = require ("./routes/audiencias/audiencias.routes");
+//FinpathRoutes
 
 try{
     const app = express();
@@ -24,6 +25,9 @@ try{
     app.use("/api/login", loginRoutes);
     app.use("/api/user", userRoutes);
     app.use("/api/audiencias", audienciasRoutes);
+    //FinRoutes
+
+    // Exportando rutas
     module.exports = app;
 }catch(error){
     module.exports = error.message;
