@@ -6,7 +6,8 @@
   "scripts": {
     "babel-node": "babel-node --presets=@babel/preset-env",
     "dev": "nodemon --exec npm run babel-node index.js",
-    "build": "mkdir dist && babel src -s -d dist"
+    "build": "mkdir dist && babel src -s -d dist",
+    "component" : "sh ./generate.sh"
   },
   "keywords": [],
   "author": "",
