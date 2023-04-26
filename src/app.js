@@ -7,6 +7,9 @@ const loginRoutes = require ("./routes/login.routes");
 const userRoutes = require ("./routes/user.routes");
 const audienciasRoutes = require ("./routes/audiencias/audiencias.routes");
 const departamentoRoutes = require ("./routes/genericos/departamento.routes");
+const municipioRoutes = require ("./routes/genericos/municipio.routes");
+const corporacionRoutes = require ("./routes/genericos/corporacion.routes");
+const despachoRoutes = require ("./routes/genericos/despacho.routes");
 //FinpathRoutes
 
 try{
@@ -27,6 +30,9 @@ try{
     app.use("/api/user", userRoutes);
     app.use("/api/audiencias", audienciasRoutes);
     app.use("/api/departamento", departamentoRoutes); 
+    app.use("/api/municipio", municipioRoutes); 
+    app.use("/api/corporacion", corporacionRoutes); 
+    app.use("/api/despacho", despachoRoutes); 
     //FinRoutes
 
     // Exportando rutas

@@ -96,8 +96,8 @@ const insertAudiencias = async (req,res) => {
             'Detalle Audiencia Vencimiento' : descripcion_vence_terminos
         };
         let valida = global_c.validateParams(dataValida);
-        const connection = await getConnection();
         if(valida.status){ // Se inserta
+            const connection = await getConnection();
             let dataQuery = [
                 username, ciudad, despacho, radicacion, fecha_actual, username, proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla
             ];
