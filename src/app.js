@@ -6,6 +6,7 @@ const cors = require ('cors');
 const loginRoutes = require ("./routes/login.routes");
 const userRoutes = require ("./routes/user.routes");
 const audienciasRoutes = require ("./routes/audiencias/audiencias.routes");
+const departamentoRoutes = require ("./routes/genericos/departamento.routes");
 //FinpathRoutes
 
 try{
@@ -25,6 +26,7 @@ try{
     app.use("/api/login", loginRoutes);
     app.use("/api/user", userRoutes);
     app.use("/api/audiencias", audienciasRoutes);
+    app.use("/api/departamento", departamentoRoutes); 
     //FinRoutes
 
     // Exportando rutas
