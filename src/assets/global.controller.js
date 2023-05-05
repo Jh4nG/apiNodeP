@@ -55,6 +55,7 @@ const verifyToken = async (req,res,next) => {
         tipousuario = (tipousuario == null || tipousuario == undefined) ? req.body.tipousuario : tipousuario;
 
         if((token == null || token == undefined) || (user == null || user == undefined) || ((tipousuario == null || tipousuario == undefined)) ){
+            connection.end();
             return {status : 400, msg : 'No autorizado'};
         }else{
             let table = (tipousuario == 'S') ? 'adm_clientes' : 'adm_usuarios';
@@ -62,12 +63,14 @@ const verifyToken = async (req,res,next) => {
             const result = await connection.query(`SELECT token FROM ${table} WHERE ${campo} = ?`,user);
             if(result.length > 0){
                 if(token === result[0].token){
+                    connection.end();
                     next();
                 }
+                connection.end();
                 return res.status(400).json({status : 400, msg : 'No autorizado'});
             }else{
+                connection.end();
                 return res.status(400).json({status : 400, msg : 'No autorizado'});
-                
             }
         }
     }catch(error){
@@ -80,8 +83,10 @@ const getParameter = async (id = 0) =>{
         const connection = await getConnection();
         const result = await connection.query(`SELECT * FROM adm_parametros WHERE id_parametro = ?`, id);
         if(result.length > 0){
+            connection.end();
             return result[0];
         }
+        connection.end();
         return false;
     }catch(error){
         return false;
@@ -94,7 +99,6 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
                         html = '') => {
     try{
         // let testAccount = await nodemailer.createTestAccount();
-    
         // create reusable transporter object using the default SMTP transport
         let transporter = nodemailer.createTransport({
             host: config.host_mail,
@@ -134,6 +138,24 @@ const getFechaConvert = (date = new Date()) => {
     return {fecha, fecha_full};
 }
 
+const getParentUser = async (id = '')=>{
+    try{
+        if(id == '' || id == null){
+            return {status:400,msg:'El usuario es obligatorio'};
+        }
+        const connection = await getConnection();
+        const result = await connection.query("SELECT GROUP_CONCAT(cedula_nit) as cc FROM adm_clientes WHERE telefono_re = ?",id);
+        if(result.length > 0){
+            connection.end();
+            return {status:200,data:result[0]};
+        }
+        connection.end();
+        return {status:400,data:[]};
+    }catch(error){
+        return {status : 500, msg : error.message};
+    }
+}
+
 module.exports = {
     sendEmail,
     generate_token,
@@ -141,6 +163,7 @@ module.exports = {
     getParameter,
     validateParams,
     getFechaConvert,
+    getParentUser,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

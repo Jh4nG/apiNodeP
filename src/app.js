@@ -10,6 +10,7 @@ const departamentoRoutes = require ("./routes/genericos/departamento.routes");
 const municipioRoutes = require ("./routes/genericos/municipio.routes");
 const corporacionRoutes = require ("./routes/genericos/corporacion.routes");
 const despachoRoutes = require ("./routes/genericos/despacho.routes");
+const reporteNotificacionesRoutes = require ("./routes/notificaciones/reporteNotificaciones.routes");
 //FinpathRoutes
 
 try{
@@ -33,6 +34,7 @@ try{
     app.use("/api/municipio", municipioRoutes); 
     app.use("/api/corporacion", corporacionRoutes); 
     app.use("/api/despacho", despachoRoutes); 
+    app.use("/api/reporteNotificaciones", reporteNotificacionesRoutes); 
     //FinRoutes
 
     // Exportando rutas

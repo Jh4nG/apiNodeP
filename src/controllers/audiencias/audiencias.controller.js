@@ -123,6 +123,7 @@ const insertAudiencias = async (req,res) => {
             connection.end();
             return res.status(400).json({status : 400, msg : `${msgInsertErr} audiencia. ${msgTry}`});
         }
+        return res.status(400).json({status : 400, msg : valida.msg});
     } catch (error) {
         return res.status(500).json({ status : 500, msg : error.message });
     }
@@ -138,8 +139,8 @@ const updateAudiencias = async (req,res)=>{
             'Id vencimiento' : id_vencimiento
         };
         let valida = global_c.validateParams(dataValida);
-        const connection = await getConnection();
         if(valida.status){ // Se actualiza
+            const connection = await getConnection();
             if(fecha_vence_terminos < fecha_actual){
                 connection.end();
                 return res.status(400).json({status : 400, msg : 'La fecha de audiencia no puede ser menor a la fecha actual'});
@@ -162,7 +163,6 @@ const updateAudiencias = async (req,res)=>{
             connection.end();
             return res.status(400).json({status : 400, msg : `${msgUpdateErr} audiencia. ${msgTry}`, msgQuery : query.message});
         }
-        connection.end();
         return res.status(400).json({status : 400, msg : valida.msg});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
