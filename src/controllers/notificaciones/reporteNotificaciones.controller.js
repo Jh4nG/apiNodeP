@@ -3,10 +3,19 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const table = "adm_planillas";
+const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, ap.imagen, ap.ubicacion,DATE_FORMAT(ap.fechapublicacion, '%Y-%m-%d') as fechapublicacion
+             ,am.municipio as nameCiudad
+             ,ad.despacho as nameDespacho
+             ,an.notificacion as nameNotificacion
+             FROM ${table} ap
+             INNER JOIN adm_municipio am ON ap.municipio = am.IdMun
+             INNER JOIN adm_despacho ad ON ap.despacho = ad.IdDes
+             INNER JOIN adm_notificacion an ON ap.notificacion = an.id_notificacion`;
+
 const sqlPreview = `SELECT * FROM adm_clientes_misprocesos WHERE username IN (?)
                     AND radicacion IN (SELECT radicacion FROM ${table} WHERE DATE(fechapublicacion) BETWEEN ? AND ?)
                     AND despacho IN (SELECT despacho FROM ${table} WHERE DATE(fechapublicacion) BETWEEN ? AND ?)`;
-const order = "despacho, radicacion, fechapublicacion";
+const order = "ap.despacho, ap.radicacion, ap.fechapublicacion";
 
 const getData = async (req,res) => {
     try{
@@ -27,10 +36,11 @@ const getData = async (req,res) => {
                     let where = [];
                     result.forEach((i,e)=>{
                         let {despacho,radicacion} = i;
-                        where.push(`(despacho = '${despacho}' AND radicacion = '${radicacion}')`);
+                        where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
                     });
-                    const query = await connection.query(`SELECT *,DATE_FORMAT(fechapublicacion, '%Y-%m-%d') as fechapublicacion FROM ${table} WHERE (${where.join(' OR ')}) 
-                                                        AND DATE(fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
+                    const query = await connection.query(`${sql}
+                                                        WHERE (${where.join(' OR ')}) 
+                                                        AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
                     if(query.length > 0){
                         connection.end();
                         return res.status(200).json({status:200, data : query});
