@@ -8,7 +8,6 @@ const d = new Date();
 const fecha_actual = `${d.getFullYear()}-${(d.getMonth()+1 < 10)? `0${d.getMonth()+1}` : d.getMonth()+1}-${(d.getDate() < 10)? `0${d.getDate()}`:d.getDate()}`;
 const fecha_actual_all = `${fecha_actual} ${(d.getHours() < 10)? `0${d.getHours()}`:d.getHours()}:${(d.getMinutes() < 10)? `0${d.getMinutes()}`:d.getMinutes()}:${(d.getSeconds() < 10)? `0${d.getSeconds()}`:d.getSeconds()}`;
 
-
 const msgInsertOk = 'agregado/a correctamente';
 const msgInsertErr = 'Error en inserción de';
 const msgUpdateOk = 'actualizado/a correctamente';
@@ -18,6 +17,11 @@ const msgDeleteErr = 'Error en eliminación de';
 const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el administrado.';
 const msgDataIncorrecta = 'Data incorrecta o incompleta.';
 
+/**
+ * Verifica que los parámetros dentro del array no sean inválidos
+ * @param {*} params 
+ * @returns 
+ */
 const validateParams = (params = {}) =>{
     try{
         let valida = [];
@@ -35,6 +39,11 @@ const validateParams = (params = {}) =>{
     }
 }
 
+/**
+ * Genera un token único
+ * @param {int} length 
+ * @returns 
+ */
 const generate_token = (length) => {
     //edit the token allowed characters
     var a = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".split("");
@@ -46,6 +55,13 @@ const generate_token = (length) => {
     return b.join("");
 }
 
+/**
+ * Verifica el token contra la BD para acceder a la data
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
 const verifyToken = async (req,res,next) => {
     try{
         const connection = await getConnection();
@@ -78,6 +94,11 @@ const verifyToken = async (req,res,next) => {
     }
 }
 
+/**
+ * Obtiene los parámetros definidos por el id
+ * @param {int} id 
+ * @returns 
+ */
 const getParameter = async (id = 0) =>{
     try{
         const connection = await getConnection();
@@ -93,6 +114,14 @@ const getParameter = async (id = 0) =>{
     }
 }
 
+/**
+ * Envia un email con una plantilla definida
+ * @param {string} from 
+ * @param {string} to 
+ * @param {string} subject 
+ * @param {string} html 
+ * @returns 
+ */
 const sendEmail = async (from = 'webmaster@proviredcolombia.com',
                         to = '',
                         subject = 'Correo Provired',
@@ -132,12 +161,22 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
     }
 }
 
+/**
+ * Convierte las en string válidos
+ * @param {date} date 
+ * @returns 
+ */
 const getFechaConvert = (date = new Date()) => {
     const fecha = `${date.getFullYear()}-${(date.getMonth()+1 < 10)? `0${(date.getMonth()+1)}` : date.getMonth()+1}-${(date.getDate() < 10)? `0${date.getDate()}`:date.getDate()}`;
     const fecha_full = `${fecha} ${(date.getHours() < 10)? `0${date.getHours()}`:date.getHours()}:${(date.getMinutes() < 10)? `0${date.getMinutes()}`:date.getMinutes()}:${(date.getSeconds() < 10)? `0${date.getSeconds()}`:date.getSeconds()}`;
     return {fecha, fecha_full};
 }
 
+/**
+ * Obtiene los id hijos dependiendo de un padre
+ * @param {string} id 
+ * @returns 
+ */
 const getParentUser = async (id = '')=>{
     try{
         if(id == '' || id == null){
@@ -156,6 +195,89 @@ const getParentUser = async (id = '')=>{
     }
 }
 
+/**
+ * Verifica que exista un archivo 
+ * @param {string} user 
+ * @param {string} radicado 
+ * @param {int} idplanilla 
+ * @param {string} nameFile 
+ * @returns 
+ */
+const verifyAuto = async (user = "",radicado = "",idplanilla = 0, nameFile = '') =>{
+    try{
+        const connection = await getConnection();
+        const queryUser = await connection.query(`SELECT cedula_nit FROM adm_clientes WHERE telefono_re = ? LIMIT 1`,user);
+        if(queryUser.length > 0 ){
+            let username = queryUser[0].cedula_nit;
+            const result = await connection.query(`SELECT * FROM adm_autos WHERE username = ? AND radicacion = ? AND idplanilla = ? LIMIT 1`,[username,radicado,idplanilla]);
+            if(result.length > 0){
+                connection.end();
+                return {status : true, ruta : result[0].ruta};
+            }
+            connection.end();
+            const url_rad = `${config.autosuser}/${username}/${radicado}/${nameFile}.pdf`;
+            const url_idplanilla = `${config.autosuser}/${username}/${radicado}/${idplanilla}/${nameFile}.pdf`;
+            if(fs.existsSync(url_rad)){
+                setAuto('insert', username,radicado,idplanilla,url_rad); // se guarda el auto
+                return {status : true, ruta : url_rad};
+            }
+            if(fs.existsSync(url_idplanilla)){
+                setAuto('insert', username,radicado,idplanilla,url_idplanilla); // se guarda el auto
+                return {status : true, ruta : url_idplanilla};
+            }
+            return {status : false, ruta : ""};
+        }
+        return {status : false, ruta : ""};
+    }catch(error){
+        return {status : 500, msg : error.message};
+    }
+}
+
+/**
+ * Setea un auto
+ * @param {string} user 
+ * @param {string} radicado 
+ * @param {int} idplanilla 
+ * @param {string} ruta 
+ * @returns 
+ */
+const setAuto = async (type = 'insert', user = "",radicado = "",idplanilla = 0, ruta = "") =>{
+    try{
+        const connection = await getConnection();
+        let sql = "";
+        let data = [];
+        switch(type){
+            case 'insert':
+                sql = "INSERT INTO adm_autos(username, radicacion, idplanilla, ruta) VALUES(?,?,?,?)";
+                data = [user,radicado,idplanilla,ruta];
+                break;
+        }
+        const result = await connection.query(sql,data);
+        if(result.affectedRows == 1){
+            return true;
+        }
+        return false;
+    }catch(error){
+        return {status : 500, msg : error.message};
+    }
+}
+
+const getExpediente = async (despacho = '', radicacion = '') =>{
+    try{
+        const connection = await getConnection();
+        const queryExpediente = await connection.query(`SELECT expediente_digital FROM adm_clientes_misprocesos WHERE despacho = ? AND radicacion = ? LIMIT 1`,[despacho,radicacion]);
+        if(queryExpediente.length > 0){
+            connection.end();
+            if(queryExpediente[0].expediente_digital != null){
+                return {statusExpediente : true, url : queryExpediente[0].expediente_digital};
+            }
+        }
+        return {statusExpediente : false, url : ''};
+    }catch(error){
+        return {status : 500, msg : error.message};
+    }
+}
+
 module.exports = {
     sendEmail,
     generate_token,
@@ -164,6 +286,8 @@ module.exports = {
     validateParams,
     getFechaConvert,
     getParentUser,
+    verifyAuto,
+    getExpediente,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

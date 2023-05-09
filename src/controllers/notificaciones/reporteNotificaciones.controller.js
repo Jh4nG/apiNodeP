@@ -3,10 +3,11 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const table = "adm_planillas";
-const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, ap.imagen, ap.ubicacion,DATE_FORMAT(ap.fechapublicacion, '%Y-%m-%d') as fechapublicacion
+const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,DATE_FORMAT(ap.fechapublicacion, '%Y-%m-%d') as fechapublicacion
              ,am.municipio as nameCiudad
              ,ad.despacho as nameDespacho
-             ,an.notificacion as nameNotificacion
+             ,an.notificacion as nameNotificacion,
+             IF(ap.imagen = '', false, true) as nota_status
              FROM ${table} ap
              INNER JOIN adm_municipio am ON ap.municipio = am.IdMun
              INNER JOIN adm_despacho ad ON ap.despacho = ad.IdDes
@@ -43,6 +44,17 @@ const getData = async (req,res) => {
                                                         AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
                     if(query.length > 0){
                         connection.end();
+                        for(let i = 0; i < query.length; i++){
+                            // Verifica existencia de auto
+                            let {radicacion,idplanilla,fechapublicacion,despacho} = query[i];
+                            let {status,ruta} = await global_c.verifyAuto(username,radicacion,idplanilla,fechapublicacion);
+                            query[i].auto = status;
+                            query[i].rutaAuto = ruta;
+                            // Verifica expediente digital
+                            let {statusExpediente, url} = await global_c.getExpediente(despacho,radicacion);
+                            query[i].expediente = statusExpediente;
+                            query[i].urlExpediente = url;
+                        }
                         return res.status(200).json({status:200, data : query});
                     }
                     connection.end();

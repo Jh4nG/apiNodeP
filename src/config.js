@@ -7,9 +7,13 @@ module.exports = {
     database : process.env.database,
     user : process.env.user,
     password : process.env.password,
+    // hash de peticiones
     hash : process.env.hash,
+    // variables envío emails
     host_mail : process.env.host_mail,
     SMTPAuth_mail : process.env.SMTPAuth_mail,
     username_mail : process.env.Username_mail,
-    password_mail : process.env.Password_mail
+    password_mail : process.env.Password_mail,
+    // Rutas locales
+    autos : process.env.autos
 }
