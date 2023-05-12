@@ -4,7 +4,7 @@ const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, 
 
 const table = "adm_despacho";
 const campos = `IdDes, despacho`;
-const campos_all = `IdDes, corporacion_IdCorp, despacho, localizacion, operativo, operativo_gc, email, telefono, url_microservicio, frecuencia_digitacion, tipo_revision, tipo_revision_gc, codigo_samai`;
+const campos_all = `IdDes, corporacion_IdCorp, despacho, localizacion, operativo, operativo_gc, email, telefono, url_microservicio, consulta_tiba, tipo_revision, tipo_revision_gc, codigo_samai`;
 
 const getData = async (req,res) => {
     try{
@@ -23,7 +23,7 @@ const getData = async (req,res) => {
 
 const insertData = async (req,res) => {
     try{
-        const { IdDes, corporacion_IdCorp, despacho, localizacion, operativo, operativo_gc, email, telefono, url_microservicio, frecuencia_digitacion, tipo_revision, tipo_revision_gc, codigo_samai } = req.body;
+        const { IdDes, corporacion_IdCorp, despacho, localizacion, operativo, operativo_gc, email, telefono, url_microservicio, consulta_tiba, tipo_revision, tipo_revision_gc, codigo_samai } = req.body;
         let dataValida = {
             "Id despacho" : IdDes,
             "Id Corporación" : corporacion_IdCorp,
@@ -36,7 +36,7 @@ const insertData = async (req,res) => {
         let valida = global_c.validateParams(dataValida);
         if(valida.status){ // Se inserta
             const connection = await getConnection();
-            const data = [IdDes, corporacion_IdCorp, despacho, localizacion, operativo, operativo_gc, email, telefono, url_microservicio, frecuencia_digitacion, tipo_revision, tipo_revision_gc, codigo_samai];
+            const data = [IdDes, corporacion_IdCorp, despacho, localizacion, operativo, operativo_gc, email, telefono, url_microservicio, consulta_tiba, tipo_revision, tipo_revision_gc, codigo_samai];
             const result = await connection.query(`INSERT INTO ${table}(${campos_all}) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, data);
             if(result.affectedRows > 0){
                 connection.end();

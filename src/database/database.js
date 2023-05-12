@@ -9,11 +9,13 @@ const getConnection = () =>{
             database: config.database,
             user: config.user,
             password: config.password,
+            port : config.port,
             multipleStatements: true,
             connectionLimit: 1000 // set the maximum number of connections
         });
         return connection;
     }catch(error){
+        console.log(error.message);
         return error.message;
     }
 }

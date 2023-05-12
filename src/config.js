@@ -7,6 +7,7 @@ module.exports = {
     database : process.env.database,
     user : process.env.user,
     password : process.env.password,
+    port : process.env.port,
     // hash de peticiones
     hash : process.env.hash,
     // variables envío emails
