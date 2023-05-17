@@ -11,6 +11,7 @@ const getConnection = () =>{
             password: config.password,
             port : config.port,
             multipleStatements: true,
+            dateStrings: true,
             connectionLimit: 1000 // set the maximum number of connections
         });
         return connection;

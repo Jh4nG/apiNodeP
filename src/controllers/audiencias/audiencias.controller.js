@@ -3,7 +3,7 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const base_query = `SELECT 
-                    vt.id_vencimiento,vt.username,vt.ciudad,vt.despacho,vt.radicacion,DATE_FORMAT(vt.fecha_registro, '%Y-%m-%d') as fecha_registro,vt.usuario,vt.proceso,vt.demandante,vt.demandado,DATE_FORMAT(vt.fecha_vence_terminos, '%Y-%m-%d') as fecha_vence_terminos,vt.descripcion_vence_terminos,vt.idplanilla,vt.idevents,
+                    vt.id_vencimiento,vt.username,vt.ciudad,vt.despacho,vt.radicacion,DATE(vt.fecha_registro) as fecha_registro,vt.usuario,vt.proceso,vt.demandante,vt.demandado,DATE(vt.fecha_vence_terminos) as fecha_vence_terminos,vt.descripcion_vence_terminos,vt.idplanilla,vt.idevents,
                     am.municipio as nameCiudad,
                     ad.despacho as nameDespacho
                     FROM adm_vencimiento_terminos vt
@@ -26,7 +26,7 @@ const getVencimientos = async (req,res) =>{
         LIMIT 5`);
         if(result.length > 0){
             connection.end();
-            return res.json({ status : 200, data : result});
+            return res.json({ status : 200, count_rows : result.length, data : result});
         }
         connection.end();
         return res.json({ status : 200, data : [], msg : "Sin información"});
@@ -46,7 +46,7 @@ const getAudiencias = async (req, res) => {
                                                 ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`,[username,fi,ff]);
         if(result.length > 0){
             connection.end();
-            return res.json({ status : 200, data : result});
+            return res.json({ status : 200, count_rows : result.length, data : result});
         }
         connection.end();
         return res.status(200).json({ status : 200, data : [], msg : "Sin información"});

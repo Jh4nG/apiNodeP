@@ -3,7 +3,7 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const table = "adm_planillas";
-const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,DATE_FORMAT(ap.fechapublicacion, '%Y-%m-%d') as fechapublicacion
+const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,ap.fechapublicacion as fechapublicacion
              ,am.municipio as nameCiudad
              ,ad.despacho as nameDespacho
              ,an.notificacion as nameNotificacion,
@@ -33,12 +33,14 @@ const getData = async (req,res) => {
                 const { cc } = data;
                 const connection = await getConnection();
                 const result = await connection.query(sqlPreview,[cc,fi,ff,fi,ff]);
+                
                 if(result.length > 0 ){
                     let where = [];
                     result.forEach((i,e)=>{
                         let {despacho,radicacion} = i;
                         where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
                     });
+                    
                     const query = await connection.query(`${sql}
                                                         WHERE (${where.join(' OR ')}) 
                                                         AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
@@ -55,7 +57,7 @@ const getData = async (req,res) => {
                             query[i].expediente = statusExpediente;
                             query[i].urlExpediente = url;
                         }
-                        return res.status(200).json({status:200, data : query});
+                        return res.status(200).json({status:200, count_rows : query.length, data : query});
                     }
                     connection.end();
                     return res.status(400).json({status:400, data : [], msg: 'Sin información'});
