@@ -1,6 +1,6 @@
 const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
-const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
+const { correo_corporativo, fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const table = "adm_solicitudes_procesos";
 const campos = `sp_id_depto,sp_id_mun,sp_id_corporacion,sp_id_despacho,sp_demandante,sp_demandado,sp_radicacion,sp_juzgado,sp_rad_23,sp_tipo_proceso,sp_sus_ingreso,sp_etiqueta`;
@@ -47,8 +47,30 @@ const insertData = async (req,res) => {
                 const idProceso = result.insertId;
                 await connection.query(`INSERT INTO adm_solicitudes_suscriptores(id_proceso, id_suscriptor)
                                         VALUES(?,?)`,[idProceso,suscriptor]);
+                //Send email
+                const { valor:correo_comercial } = await global_c.getParameter(5);
+                const { valor:web_master } = await global_c.getParameter(14);
+                const { valor:subject } = await global_c.getParameter(24);
+                const dataEmail = await getDataEmail(depto,municipio,corporacion,despacho,suscriptor);
+                let html = `
+                                <h3>${subject}</h3>
+                                <p style="color: #000 !important;">Suscriptor: ${dataEmail.nombre} </p>
+                                <p style="color: #000 !important;">Despacho: ${dataEmail.despacho} </p>
+                                <p style="color: #000 !important;">Ciudad: ${dataEmail.municipio} </p>
+                                <p style="color: #000 !important;">Departamento: ${dataEmail.departamento} </p>
+                                <p style="color: #000 !important;">Radicado (9 digitos): ${radicacion} </p>
+                                <p style="color: #000 !important;">Juzgado de Origen: ${juzgado_origen} </p>
+                                <p style="color: #000 !important;">Radicado (23 digitos): ${codigo23} </p>
+                                <p style="color: #000 !important;">Tipo de Proceso: ${proceso} </p>
+                                <p style="color: #000 !important;">Demandante: ${demandante} </p>
+                                <p style="color: #000 !important;">Demandado: ${demandado} </p>
+                            `;
+                
+                await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Suscripcion de Nuevos Procesos", html, `${correo_comercial},${web_master}`);
+                // Response
+                const { parametro,valor } = await global_c.getParameter(23);
                 connection.end();
-                return res.status(200).json({status:200, msg : `Proceso ${msgInsertOk}`});
+                return res.status(200).json({status:200, msg : valor, msgProceso : `Proceso ${msgInsertOk}`});
             }
             connection.end();
             return res.status(400).json({status:400, msg : `${msgInsertErr} Proceso. ${msgTry}`});
@@ -56,6 +78,34 @@ const insertData = async (req,res) => {
         return res.status(400).json({status:400, msg : valida.msg});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
+    }
+}
+
+const getDataEmail = async(depto,mun,corp,desp,suscriptor) => {
+    try{
+        let dataSendEmail = {};
+        // Se obtienee los nombres de los genéricos
+        var { status, data } = await global_c.getGenericosAll(desp);
+        if(status == true){
+            var { despacho, corporacion, municipio, departamento } = data;
+            dataSendEmail.despacho = despacho;
+            dataSendEmail.corporacion = corporacion;
+            dataSendEmail.municipio = municipio;
+            dataSendEmail.departamento = departamento;
+        }
+        const connection = await getConnection();
+        const resultSusc =  await connection.query(`SELECT * FROM adm_clientes WHERE cedula_nit = ?`,suscriptor);
+        if(resultSusc.length > 0){
+            var { nombre } = resultSusc[0];
+            dataSendEmail.nombre = nombre;
+            const { status, data } = await global_c.getParentUserEmail(suscriptor);
+            if(status == 200) {
+                dataSendEmail.emails = data.emails;
+            }
+        }
+        return dataSendEmail;
+    }catch(error){
+        return {status : false, data : {}}
     }
 }
 

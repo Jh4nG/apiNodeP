@@ -125,7 +125,8 @@ const getParameter = async (id = 0) =>{
 const sendEmail = async (from = 'webmaster@proviredcolombia.com',
                         to = '',
                         subject = 'Correo Provired',
-                        html = '') => {
+                        html = '',
+                        cc = '') => {
     try{
         // let testAccount = await nodemailer.createTestAccount();
         // create reusable transporter object using the default SMTP transport
@@ -144,6 +145,7 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
         let parameters = {
             from: from, // sender address
             to: to, // list of receivers
+            cc : cc, // Con copia
             subject: subject, // Subject line
             html: htmlBody, // html body
         };
@@ -193,6 +195,20 @@ const getParentUser = async (id = '')=>{
     }catch(error){
         return {status : 500, msg : error.message};
     }
+}
+
+const getParentUserEmail = async (id = '') => {
+    if(id == '' || id == null){
+        return {status:400,msg:'El usuario es obligatorio'};
+    }
+    const connection = await getConnection();
+    const result = await connection.query("SELECT GROUP_CONCAT(email) as emails FROM adm_clientes WHERE telefono_re = ?",id);
+    if(result.length > 0){
+        connection.end();
+        return {status:200,data:result[0]};
+    }
+    connection.end();
+    return {status:400,data:[]};
 }
 
 /**
@@ -278,6 +294,29 @@ const getExpediente = async (despacho = '', radicacion = '') =>{
     }
 }
 
+/**
+ * Obtiene la estructura de los genéricos, desde el departamento hasta el despacho (sólo códigos y nombres)
+ * @param {} despacho 
+ */
+const getGenericosAll = async (despacho = '') =>{
+    try{
+        const connection = await getConnection();
+        const queryGenericos = await connection.query(`SELECT ad.IdDes,ad.despacho,ac.IdCorp,ac.corporacion,am.IdMun,am.municipio,adp.IdDep,adp.departamento 
+                                    FROM adm_despacho ad 
+                                    INNER JOIN adm_corporacion ac ON ad.corporacion_IdCorp = ac.IdCorp
+                                    INNER JOIN adm_municipio am ON ac.municipio_IdMun = am.IdMun
+                                    INNER JOIN adm_depto adp ON am.depto_IdDep = adp.IdDep
+                                    WHERE ad.IdDes = ?`,despacho);
+        if(queryGenericos.length > 0){
+            connection.end();
+            return {status : true, data : queryGenericos[0]};
+        }
+        return {status : false, data : []};
+    }catch(error){
+        return {status : false, data : []};
+    }
+}
+
 module.exports = {
     sendEmail,
     generate_token,
@@ -286,8 +325,10 @@ module.exports = {
     validateParams,
     getFechaConvert,
     getParentUser,
+    getParentUserEmail,
     verifyAuto,
     getExpediente,
+    getGenericosAll,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,
