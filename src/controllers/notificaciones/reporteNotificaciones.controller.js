@@ -28,10 +28,10 @@ const getData = async (req,res) => {
         }
         let valida = global_c.validateParams(dataValida);
         if(valida.status){ // Se inserta
-            const {status,data,msg} = await global_c.getParentUser(username);
+            const connection = await getConnection();
+            const {status,data,msg} = await global_c.getParentUser(connection, username);
             if(status==200){
                 const { cc } = data;
-                const connection = await getConnection();
                 const result = await connection.query(sqlPreview,[cc,fi,ff,fi,ff]);
                 
                 if(result.length > 0 ){
@@ -45,18 +45,18 @@ const getData = async (req,res) => {
                                                         WHERE (${where.join(' OR ')}) 
                                                         AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
                     if(query.length > 0){
-                        connection.end();
                         for(let i = 0; i < query.length; i++){
                             // Verifica existencia de auto
                             let {radicacion,idplanilla,fechapublicacion,despacho} = query[i];
-                            let {status,ruta} = await global_c.verifyAuto(username,radicacion,idplanilla,fechapublicacion);
+                            let {status,ruta} = await global_c.verifyAuto(connection,username,radicacion,idplanilla,fechapublicacion);
                             query[i].auto = status;
                             query[i].rutaAuto = ruta;
                             // Verifica expediente digital
-                            let {statusExpediente, url} = await global_c.getExpediente(despacho,radicacion);
+                            let {statusExpediente, url} = await global_c.getExpediente(connection,despacho,radicacion);
                             query[i].expediente = statusExpediente;
                             query[i].urlExpediente = url;
                         }
+                        connection.end();
                         return res.status(200).json({status:200, count_rows : query.length, data : query});
                     }
                     connection.end();
@@ -65,6 +65,7 @@ const getData = async (req,res) => {
                 connection.end();
                 return res.status(400).json({status:400, data : [], msg: 'Sin información'});
             }
+            connection.end();
             return res.status(400).json({status : 400, msg : msg});
         }
         return res.status(400).json({status : 400, msg : valida.msg});
