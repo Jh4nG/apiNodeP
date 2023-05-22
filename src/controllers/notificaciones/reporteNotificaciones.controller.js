@@ -3,6 +3,7 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const table = "adm_planillas";
+const limit = "LIMIT ?, ?";
 const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,ap.fechapublicacion as fechapublicacion
              ,am.municipio as nameCiudad
              ,ad.despacho as nameDespacho
@@ -20,7 +21,7 @@ const order = "ap.despacho, ap.radicacion, ap.fechapublicacion";
 
 const getData = async (req,res) => {
     try{
-        const { username,fi,ff } = req.body;
+        const { username,fi,ff,from,rows } = req.body;
         let dataValida = {
             'Usuario' : username,
             'Fecha inicial' : fi,
@@ -43,7 +44,8 @@ const getData = async (req,res) => {
                     
                     const query = await connection.query(`${sql}
                                                         WHERE (${where.join(' OR ')}) 
-                                                        AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
+                                                        AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC
+                                                        ${limit}`,[fi,ff, from, rows]);
                     if(query.length > 0){
                         for(let i = 0; i < query.length; i++){
                             // Verifica existencia de auto
