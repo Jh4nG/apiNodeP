@@ -23,6 +23,11 @@ const getUser = async (req,res) =>{
             delete result[0]['password_ok'];
             delete result[0]['password'];
             delete result[0]['token'];
+            if(tipousuario == 'S'){
+                let parent = await global_c.getParentUser(connection, user);
+                result[0].group_users = btoa(parent.data.cc);
+                result[0].parent = btoa(parent.data.cedula_nit);
+            }
             connection.end();
             return res.status(200).json({ status : 200, user, tipousuario, data : result[0] });
         }
