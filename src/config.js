@@ -16,5 +16,6 @@ module.exports = {
     username_mail : process.env.Username_mail,
     password_mail : process.env.Password_mail,
     // Rutas locales
-    autos : process.env.autos
+    autos : process.env.autos,
+    excel : process.env.excel
 }

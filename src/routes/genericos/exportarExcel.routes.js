@@ -6,7 +6,7 @@ const middleware = require("./../../assets/middleware");
 
 try{
     const router = Router();
-    router.post("/insert", middleware.ensureAuthenticated, exportarExcelController.exportar);
+    router.post("/", middleware.ensureAuthenticated, exportarExcelController.exportar);
     
     module.exports = router;
 }catch(error){

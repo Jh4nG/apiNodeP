@@ -1,7 +1,10 @@
+const xl = require('excel4node');
+const util = require('util');
 const config =  require("./../config");
 const nodemailer = require("nodemailer");
 const fs = require('file-system');
 const { getConnection } = require("./../database/database");
+const { type } = require('os');
 
 const correo_corporativo = 'webmaster@proviredcolombia.com';
 const d = new Date();
@@ -16,6 +19,7 @@ const msgDeleteOk = 'eliminado/a correctamente';
 const msgDeleteErr = 'Error en eliminación de';
 const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el administrado.';
 const msgDataIncorrecta = 'Data incorrecta o incompleta.';
+const msgSinInfo = 'La resultados, por favor genere una nueva consulta cambiando los filtros.';
 
 /**
  * Verifica que los parámetros dentro del array no sean inválidos
@@ -328,6 +332,71 @@ const getGenericosAll = async (connection, despacho = '') =>{
     }
 }
 
+/**
+ * Generador de Excel
+ * @param {*} name_user 
+ * @param {*} name_file 
+ * @param {*} heads 
+ * @param {*} rows 
+ * @returns 
+ */
+const generateExcel = async (name_user, name_file, heads, rows) => {
+    try{
+        // Libro
+        let wb = new xl.Workbook();
+        wb.writeP = util.promisify(wb.write);
+        // Hoja
+        let ws = wb.addWorksheet('Reporte');
+
+        // Estilos
+        let style = wb.createStyle({
+            font: {
+                color : '#000000',
+                size : 12
+            }
+        });
+
+        let styleBlue = wb.createStyle({
+            font: {
+                color : '#6D84A3',
+                size : 13
+            }
+        });
+
+        // Cabeceras
+        for(let i = 0; i<heads.length; i++){
+            ws.cell(1, i+1).string(heads[i]).style(styleBlue);
+            ws.column(i+1).setWidth(30);
+        }
+
+        for(let r = 0; r<rows.length; r++){
+            for(let i = 0; i<heads.length; i++){
+                let objeto = rows[r];
+                let valor = objeto[heads[i]];
+                console.log(typeof(valor));
+                switch(typeof(valor)){
+                    case 'number':
+                        ws.cell(r+2, i+1).number(valor).style(style);
+                        break;
+                    default:
+                        ws.cell(r+2, i+1).string(`${valor}`).style(style);
+                        break;
+                }
+            }
+        }
+        console.log('pasa');
+        let nameFile = `${config.excel}/${name_file}.xlsx`;
+        
+        let result = await wb.writeP(nameFile);
+        if(result){
+            return {status : 200, url : nameFile, msg : 'Archivo generado correctamente'}
+        }
+        return {status : 400, url : '', msg : result.err};
+    }catch(error){
+        return {status : 500, url:'', msg : error.message};
+    }
+}
+
 module.exports = {
     sendEmail,
     generate_token,
@@ -341,6 +410,7 @@ module.exports = {
     getExpediente,
     getGenericosAll,
     getEtiqueta,
+    generateExcel,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,
@@ -351,5 +421,6 @@ module.exports = {
     msgDeleteOk,
     msgDeleteErr,
     msgTry,
-    msgDataIncorrecta
+    msgDataIncorrecta,
+    msgSinInfo
 }

@@ -1,6 +1,6 @@
 const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
-const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
+const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
 const table = "adm_planillas";
 const limit = "LIMIT ?, ?";
@@ -63,10 +63,10 @@ const getData = async (req,res) => {
                     return res.status(200).json({status:200, count_rows, data : query});
                 }
                 connection.end();
-                return res.status(400).json({status:400, data : [], msg: 'Sin información'});
+                return res.status(400).json({status:400, data : [], msg: msgSinInfo});
             }
             connection.end();
-            return res.status(400).json({status:400, data : [], msg: 'Sin información'});
+            return res.status(400).json({status:400, data : [], msg: msgSinInfo});
         }
         return res.status(400).json({status : 400, msg : valida.msg});
     }catch(error){

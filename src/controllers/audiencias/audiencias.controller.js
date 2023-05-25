@@ -1,6 +1,6 @@
 const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
-const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
+const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
 const base_query = `SELECT 
                     vt.id_vencimiento,vt.username,vt.ciudad,vt.despacho,vt.radicacion,DATE(vt.fecha_registro) as fecha_registro,vt.usuario,vt.proceso,vt.demandante,vt.demandado,DATE(vt.fecha_vence_terminos) as fecha_vence_terminos,vt.descripcion_vence_terminos,vt.idplanilla,vt.idevents,
@@ -29,7 +29,7 @@ const getVencimientos = async (req,res) =>{
             return res.json({ status : 200, count_rows : result.length, data : result});
         }
         connection.end();
-        return res.json({ status : 200, data : [], msg : "Sin información"});
+        return res.json({ status : 200, data : [], msg : msgSinInfo});
     }catch(error){
         res.json({ status : 500, msg : error.message});
     }
@@ -49,7 +49,7 @@ const getAudiencias = async (req, res) => {
             return res.json({ status : 200, count_rows : result.length, data : result});
         }
         connection.end();
-        return res.status(200).json({ status : 200, data : [], msg : "Sin información"});
+        return res.status(200).json({ status : 200, data : [], msg : msgSinInfo});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
     }
@@ -75,7 +75,7 @@ const getAudienciasId = async (req,res) =>{
         if(result.length > 0){
             return res.status(200).json({ status : 200, data : result[0]});
         }
-        return res.status(200).json({ status : 200, data : [], msg : "Sin información"});
+        return res.status(200).json({ status : 200, data : [], msg : msgSinInfo});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
     }
