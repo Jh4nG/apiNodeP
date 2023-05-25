@@ -12,6 +12,7 @@ const corporacionRoutes = require ("./routes/genericos/corporacion.routes");
 const despachoRoutes = require ("./routes/genericos/despacho.routes");
 const reporteNotificacionesRoutes = require ("./routes/notificaciones/reporteNotificaciones.routes");
 const newProcesoRoutes = require ("./routes/procesos/newProceso.routes");
+const exportarExcelRoutes = require ("./routes/genericos/exportarExcel.routes");
 //FinpathRoutes
 
 try{
@@ -37,6 +38,7 @@ try{
     app.use("/api/despacho", despachoRoutes); 
     app.use("/api/reporteNotificaciones", reporteNotificacionesRoutes); 
     app.use("/api/newProceso", newProcesoRoutes); 
+    app.use("/api/exportarExcel", exportarExcelRoutes); 
     //FinRoutes
 
     // Exportando rutas

@@ -8,9 +8,10 @@ const sqlcount = `SELECT ap.idplanilla FROM ${table} ap`;
 const sql = `SELECT SQL_CALC_FOUND_ROWS ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,ap.fechapublicacion as fechapublicacion
              ,am.municipio as name_ciudad
              ,ad.despacho as name_despacho
-             ,an.notificacion as name_notificacion,
-             IF(ap.imagen = '', false, true) as nota_status,
-             (SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND username IN (?) AND despacho = ap.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
+             ,an.notificacion as name_notificacion
+             ,IF(ap.imagen = '', false, true) as nota_status
+             ,(SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND username IN (?) AND despacho = ap.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
+             ,(SELECT expediente_digital FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND despacho = ap.despacho LIMIT 1) as expediente_digital
              FROM ${table} ap
              INNER JOIN adm_municipio am ON ap.municipio = am.IdMun
              INNER JOIN adm_despacho ad ON ap.despacho = ad.IdDes
