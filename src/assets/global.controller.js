@@ -19,7 +19,7 @@ const msgDeleteOk = 'eliminado/a correctamente';
 const msgDeleteErr = 'Error en eliminación de';
 const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el administrado.';
 const msgDataIncorrecta = 'Data incorrecta o incompleta.';
-const msgSinInfo = 'La resultados, por favor genere una nueva consulta cambiando los filtros.';
+const msgSinInfo = 'No hay resultados, por favor genere una nueva consulta cambiando los filtros.';
 
 /**
  * Verifica que los parámetros dentro del array no sean inválidos
