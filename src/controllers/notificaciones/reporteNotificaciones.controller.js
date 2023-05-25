@@ -137,13 +137,39 @@ const getDataId = async (req,res)=>{
     }
 }
 
+const getExpediente = async(req,res)=>{
+    try{
+        const { username,radicacion,despacho } = req.body;
+        let dataValida = {
+            'Usuario' : username,
+            'Radicado' : radicacion,
+            'Despacho' : despacho
+        }
+        let valida = global_c.validateParams(dataValida);
+        if(valida.status){ // Se ejectua
+            const connection = await getConnection();
+            const { statusExpediente, url } = await global_c.getExpediente(connection,despacho,radicacion);
+            if(statusExpediente){
+                connection.end();
+                return res.status(200).json({status:200, url});
+            }
+            connection.end();
+            return res.status(200).json({status:400,url:''});
+        }
+        return res.status(400).json({status : 400, msg : valida.msg});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message });
+    }
+}
+
 try{
     module.exports = {
         getData,
         insertData,
         updateData,
         deleteData,
-        getDataId
+        getDataId,
+        getExpediente
     }
 }catch(error){
     console.log(error.message);

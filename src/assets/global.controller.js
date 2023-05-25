@@ -203,17 +203,17 @@ const getParentUser = async (connection, id = '')=>{
 const verifyAuto = async (connection, parent = "",radicado = "",idplanilla = 0, nameFile = '') =>{
     try{
         // const connection = await getConnection();
-        // const result = await connection.query(`SELECT ruta FROM adm_autos WHERE username = ? AND radicacion = ? AND idplanilla = ?`,[username,radicado,idplanilla]);
+        // const result = await connection.query(`SELECT ruta FROM adm_autos WHERE username = ? AND radicacion = ? AND idplanilla = ?`,[parent,radicado,idplanilla]);
         // if(result.length > 0){
         //     return {status : true, ruta : result[0].ruta};
         // }
-        const url_rad = `${config.autosuser}/${parent}/${radicado}/${nameFile}.pdf`;
-        const url_idplanilla = `${config.autosuser}/${parent}/${radicado}/${idplanilla}/${nameFile}.pdf`;
-        if(fs.existsSync(url_rad)){
+        const url_rad = `/${parent}/${radicado}/${nameFile}.pdf`;
+        const url_idplanilla = `/${parent}/${radicado}/${idplanilla}/${nameFile}.pdf`;
+        if(fs.existsSync(`${config.autos+url_rad}`)){
             setAuto(connection, 'insert', parent,radicado,idplanilla,url_rad); // se guarda el auto
             return {status : true, ruta : url_rad};
         }
-        if(fs.existsSync(url_idplanilla)){
+        if(fs.existsSync(`${config.autos+url_idplanilla}`)){
             setAuto(connection, 'insert', parent,radicado,idplanilla,url_idplanilla); // se guarda el auto
             return {status : true, ruta : url_idplanilla};
         }
@@ -261,7 +261,7 @@ const setAuto = async (connection, type = 'insert', user = "",radicado = "",idpl
 const getExpediente = async (connection, despacho = '', radicacion = '') =>{
     try{
         // const connection = await getConnection();
-        const queryExpediente = await connection.query(`SELECT expediente_digital FROM adm_clientes_misprocesos WHERE despacho = ? AND radicacion = ?`,[despacho,radicacion]);
+        const queryExpediente = await connection.query(`SELECT expediente_digital FROM adm_clientes_misprocesos WHERE despacho = ? AND radicacion = ? LIMIT 1`,[despacho,radicacion]);
         if(queryExpediente.length > 0){
             if(queryExpediente[0].expediente_digital != null){
                 return {statusExpediente : true, url : queryExpediente[0].expediente_digital};
@@ -269,7 +269,7 @@ const getExpediente = async (connection, despacho = '', radicacion = '') =>{
         }
         return {statusExpediente : false, url : ''};
     }catch(error){
-        return {status : 500, msg : error.message};
+        return {status : false, msg : error.message, url : ''};
     }
 }
 
