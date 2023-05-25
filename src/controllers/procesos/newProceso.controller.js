@@ -48,9 +48,9 @@ const insertData = async (req,res) => {
                 await connection.query(`INSERT INTO adm_solicitudes_suscriptores(id_proceso, id_suscriptor)
                                         VALUES(?,?)`,[idProceso,suscriptor]);
                 //Send email
-                const { valor:correo_comercial } = await global_c.getParameter(5);
-                const { valor:web_master } = await global_c.getParameter(14);
-                const { valor:subject } = await global_c.getParameter(24);
+                const { valor:correo_comercial } = await global_c.getParameter(connection,5);
+                const { valor:web_master } = await global_c.getParameter(connection,14);
+                const { valor:subject } = await global_c.getParameter(connection,24);
                 const dataEmail = await getDataEmail(depto,municipio,corporacion,despacho,suscriptor);
                 let html = `
                                 <h3>${subject}</h3>
@@ -68,7 +68,7 @@ const insertData = async (req,res) => {
                 
                 await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Suscripcion de Nuevos Procesos", html, `${correo_comercial},${web_master}`);
                 // Response
-                const { parametro,valor } = await global_c.getParameter(23);
+                const { parametro,valor } = await global_c.getParameter(connection,23);
                 connection.end();
                 return res.status(200).json({status:200, msg : valor, msgProceso : `Proceso ${msgInsertOk}`});
             }
@@ -85,7 +85,8 @@ const getDataEmail = async(depto,mun,corp,desp,suscriptor) => {
     try{
         let dataSendEmail = {};
         // Se obtienee los nombres de los genéricos
-        var { status, data } = await global_c.getGenericosAll(desp);
+        const connection = await getConnection();
+        var { status, data } = await global_c.getGenericosAll(connection, desp);
         if(status == true){
             var { despacho, corporacion, municipio, departamento } = data;
             dataSendEmail.despacho = despacho;
@@ -93,12 +94,11 @@ const getDataEmail = async(depto,mun,corp,desp,suscriptor) => {
             dataSendEmail.municipio = municipio;
             dataSendEmail.departamento = departamento;
         }
-        const connection = await getConnection();
         const resultSusc =  await connection.query(`SELECT * FROM adm_clientes WHERE cedula_nit = ?`,suscriptor);
         if(resultSusc.length > 0){
             var { nombre } = resultSusc[0];
             dataSendEmail.nombre = nombre;
-            const { status, data } = await global_c.getParentUserEmail(suscriptor);
+            const { status, data } = await global_c.getParentUserEmail(connection, suscriptor);
             if(status == 200) {
                 dataSendEmail.emails = data.emails;
             }

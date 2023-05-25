@@ -3,24 +3,30 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry } = global_c;
 
 const table = "adm_planillas";
-const sql = `SELECT ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,ap.fechapublicacion as fechapublicacion
-             ,am.municipio as nameCiudad
-             ,ad.despacho as nameDespacho
-             ,an.notificacion as nameNotificacion,
-             IF(ap.imagen = '', false, true) as nota_status
+const limit = "LIMIT ?, ?";
+const sqlcount = `SELECT ap.idplanilla FROM ${table} ap`;
+const sql = `SELECT SQL_CALC_FOUND_ROWS ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,ap.fechapublicacion as fechapublicacion
+             ,am.municipio as name_ciudad
+             ,ad.despacho as name_despacho
+             ,an.notificacion as name_notificacion,
+             IF(ap.imagen = '', false, true) as nota_status,
+             (SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND username IN (?) AND despacho = ap.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
              FROM ${table} ap
              INNER JOIN adm_municipio am ON ap.municipio = am.IdMun
              INNER JOIN adm_despacho ad ON ap.despacho = ad.IdDes
              INNER JOIN adm_notificacion an ON ap.notificacion = an.id_notificacion`;
 
-const sqlPreview = `SELECT * FROM adm_clientes_misprocesos WHERE username IN (?)
+const sqlPreview = `SELECT radicacion,despacho FROM adm_clientes_misprocesos WHERE username IN (?)
                     AND radicacion IN (SELECT radicacion FROM ${table} WHERE DATE(fechapublicacion) BETWEEN ? AND ?)
                     AND despacho IN (SELECT despacho FROM ${table} WHERE DATE(fechapublicacion) BETWEEN ? AND ?)`;
 const order = "ap.despacho, ap.radicacion, ap.fechapublicacion";
 
 const getData = async (req,res) => {
     try{
-        const { username,fi,ff } = req.body;
+        const { username,fi,ff,from,rows } = req.body;
+        let { group_users,parent } = req.body;
+        group_users = atob(group_users).split(',');
+        parent = atob(parent);
         let dataValida = {
             'Usuario' : username,
             'Fecha inicial' : fi,
@@ -28,44 +34,38 @@ const getData = async (req,res) => {
         }
         let valida = global_c.validateParams(dataValida);
         if(valida.status){ // Se inserta
-            const {status,data,msg} = await global_c.getParentUser(username);
-            if(status==200){
-                const { cc } = data;
-                const connection = await getConnection();
-                const result = await connection.query(sqlPreview,[cc,fi,ff,fi,ff]);
+            const connection = await getConnection();
+            const result = await connection.query(sqlPreview,[group_users,fi,ff,fi,ff]);
+            
+            if(result.length > 0 ){
+                let where = [];
+                result.forEach((i,e)=>{
+                    let {despacho,radicacion} = i;
+                    where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
+                });
                 
-                if(result.length > 0 ){
-                    let where = [];
-                    result.forEach((i,e)=>{
-                        let {despacho,radicacion} = i;
-                        where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
-                    });
-                    
-                    const query = await connection.query(`${sql}
-                                                        WHERE (${where.join(' OR ')}) 
-                                                        AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC`,[fi,ff]);
-                    if(query.length > 0){
-                        connection.end();
-                        for(let i = 0; i < query.length; i++){
-                            // Verifica existencia de auto
-                            let {radicacion,idplanilla,fechapublicacion,despacho} = query[i];
-                            let {status,ruta} = await global_c.verifyAuto(username,radicacion,idplanilla,fechapublicacion);
-                            query[i].auto = status;
-                            query[i].rutaAuto = ruta;
-                            // Verifica expediente digital
-                            let {statusExpediente, url} = await global_c.getExpediente(despacho,radicacion);
-                            query[i].expediente = statusExpediente;
-                            query[i].urlExpediente = url;
-                        }
-                        return res.status(200).json({status:200, count_rows : query.length, data : query});
+                const query = await connection.query(`${sql}
+                                                    WHERE (${where.join(' OR ')}) 
+                                                    AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC
+                                                    ${limit}`,[group_users,fi,ff, from, rows]);
+                if(query.length > 0){
+                    const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
+                    let count_rows = queryCount[0].cantidad;
+                    for(let i = 0; i < query.length; i++){
+                        // Verifica existencia de auto
+                        let {radicacion,idplanilla,fechapublicacion} = query[i];
+                        let {status,ruta} = await global_c.verifyAuto(connection,parent,radicacion,idplanilla,fechapublicacion);
+                        query[i].auto = status;
+                        query[i].ruta_auto = ruta;
                     }
                     connection.end();
-                    return res.status(400).json({status:400, data : [], msg: 'Sin información'});
+                    return res.status(200).json({status:200, count_rows, data : query});
                 }
                 connection.end();
                 return res.status(400).json({status:400, data : [], msg: 'Sin información'});
             }
-            return res.status(400).json({status : 400, msg : msg});
+            connection.end();
+            return res.status(400).json({status:400, data : [], msg: 'Sin información'});
         }
         return res.status(400).json({status : 400, msg : valida.msg});
     }catch(error){
@@ -137,13 +137,39 @@ const getDataId = async (req,res)=>{
     }
 }
 
+const getExpediente = async(req,res)=>{
+    try{
+        const { username,radicacion,despacho } = req.body;
+        let dataValida = {
+            'Usuario' : username,
+            'Radicado' : radicacion,
+            'Despacho' : despacho
+        }
+        let valida = global_c.validateParams(dataValida);
+        if(valida.status){ // Se ejectua
+            const connection = await getConnection();
+            const { statusExpediente, url } = await global_c.getExpediente(connection,despacho,radicacion);
+            if(statusExpediente){
+                connection.end();
+                return res.status(200).json({status:200, url});
+            }
+            connection.end();
+            return res.status(200).json({status:400,url:''});
+        }
+        return res.status(400).json({status : 400, msg : valida.msg});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message });
+    }
+}
+
 try{
     module.exports = {
         getData,
         insertData,
         updateData,
         deleteData,
-        getDataId
+        getDataId,
+        getExpediente
     }
 }catch(error){
     console.log(error.message);

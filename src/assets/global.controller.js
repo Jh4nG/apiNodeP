@@ -99,15 +99,13 @@ const verifyToken = async (req,res,next) => {
  * @param {int} id 
  * @returns 
  */
-const getParameter = async (id = 0) =>{
+const getParameter = async (connection, id = 0) =>{1
     try{
-        const connection = await getConnection();
+        // const connection = await getConnection();
         const result = await connection.query(`SELECT * FROM adm_parametros WHERE id_parametro = ?`, id);
         if(result.length > 0){
-            connection.end();
             return result[0];
         }
-        connection.end();
         return false;
     }catch(error){
         return false;
@@ -179,35 +177,31 @@ const getFechaConvert = (date = new Date()) => {
  * @param {string} id 
  * @returns 
  */
-const getParentUser = async (id = '')=>{
+const getParentUser = async (connection, id = '')=>{
     try{
         if(id == '' || id == null){
             return {status:400,msg:'El usuario es obligatorio'};
         }
-        const connection = await getConnection();
-        const result = await connection.query("SELECT GROUP_CONCAT(cedula_nit) as cc FROM adm_clientes WHERE telefono_re = ?",id);
+        const result = await connection.query("SELECT GROUP_CONCAT(cedula_nit) as cc,cedula_nit FROM adm_clientes WHERE telefono_re = ?",id);
         if(result.length > 0){
-            connection.end();
+            // connection.end();
             return {status:200,data:result[0]};
         }
-        connection.end();
+        // connection.end();
         return {status:400,data:[]};
     }catch(error){
         return {status : 500, msg : error.message};
     }
 }
 
-const getParentUserEmail = async (id = '') => {
+const getParentUserEmail = async (connection, id = '') => {
     if(id == '' || id == null){
         return {status:400,msg:'El usuario es obligatorio'};
     }
-    const connection = await getConnection();
     const result = await connection.query("SELECT GROUP_CONCAT(email) as emails FROM adm_clientes WHERE telefono_re = ?",id);
     if(result.length > 0){
-        connection.end();
         return {status:200,data:result[0]};
     }
-    connection.end();
     return {status:400,data:[]};
 }
 
@@ -219,29 +213,22 @@ const getParentUserEmail = async (id = '') => {
  * @param {string} nameFile 
  * @returns 
  */
-const verifyAuto = async (user = "",radicado = "",idplanilla = 0, nameFile = '') =>{
+const verifyAuto = async (connection, parent = "",radicado = "",idplanilla = 0, nameFile = '') =>{
     try{
-        const connection = await getConnection();
-        const queryUser = await connection.query(`SELECT cedula_nit FROM adm_clientes WHERE telefono_re = ? LIMIT 1`,user);
-        if(queryUser.length > 0 ){
-            let username = queryUser[0].cedula_nit;
-            const result = await connection.query(`SELECT * FROM adm_autos WHERE username = ? AND radicacion = ? AND idplanilla = ? LIMIT 1`,[username,radicado,idplanilla]);
-            if(result.length > 0){
-                connection.end();
-                return {status : true, ruta : result[0].ruta};
-            }
-            connection.end();
-            const url_rad = `${config.autosuser}/${username}/${radicado}/${nameFile}.pdf`;
-            const url_idplanilla = `${config.autosuser}/${username}/${radicado}/${idplanilla}/${nameFile}.pdf`;
-            if(fs.existsSync(url_rad)){
-                setAuto('insert', username,radicado,idplanilla,url_rad); // se guarda el auto
-                return {status : true, ruta : url_rad};
-            }
-            if(fs.existsSync(url_idplanilla)){
-                setAuto('insert', username,radicado,idplanilla,url_idplanilla); // se guarda el auto
-                return {status : true, ruta : url_idplanilla};
-            }
-            return {status : false, ruta : ""};
+        // const connection = await getConnection();
+        // const result = await connection.query(`SELECT ruta FROM adm_autos WHERE username = ? AND radicacion = ? AND idplanilla = ?`,[parent,radicado,idplanilla]);
+        // if(result.length > 0){
+        //     return {status : true, ruta : result[0].ruta};
+        // }
+        const url_rad = `/${parent}/${radicado}/${nameFile}.pdf`;
+        const url_idplanilla = `/${parent}/${radicado}/${idplanilla}/${nameFile}.pdf`;
+        if(fs.existsSync(`${config.autos+url_rad}`)){
+            setAuto(connection, 'insert', parent,radicado,idplanilla,url_rad); // se guarda el auto
+            return {status : true, ruta : url_rad};
+        }
+        if(fs.existsSync(`${config.autos+url_idplanilla}`)){
+            setAuto(connection, 'insert', parent,radicado,idplanilla,url_idplanilla); // se guarda el auto
+            return {status : true, ruta : url_idplanilla};
         }
         return {status : false, ruta : ""};
     }catch(error){
@@ -257,9 +244,8 @@ const verifyAuto = async (user = "",radicado = "",idplanilla = 0, nameFile = '')
  * @param {string} ruta 
  * @returns 
  */
-const setAuto = async (type = 'insert', user = "",radicado = "",idplanilla = 0, ruta = "") =>{
+const setAuto = async (connection, type = 'insert', user = "",radicado = "",idplanilla = 0, ruta = "") =>{
     try{
-        const connection = await getConnection();
         let sql = "";
         let data = [];
         switch(type){
@@ -278,19 +264,44 @@ const setAuto = async (type = 'insert', user = "",radicado = "",idplanilla = 0, 
     }
 }
 
-const getExpediente = async (despacho = '', radicacion = '') =>{
+/**
+ * Verifica si tiene expediente_digital de adm_clientes_misproceso
+ * @param {*} connection 
+ * @param {*} despacho 
+ * @param {*} radicacion 
+ * @returns 
+ */
+const getExpediente = async (connection, despacho = '', radicacion = '') =>{
     try{
-        const connection = await getConnection();
+        // const connection = await getConnection();
         const queryExpediente = await connection.query(`SELECT expediente_digital FROM adm_clientes_misprocesos WHERE despacho = ? AND radicacion = ? LIMIT 1`,[despacho,radicacion]);
         if(queryExpediente.length > 0){
-            connection.end();
             if(queryExpediente[0].expediente_digital != null){
                 return {statusExpediente : true, url : queryExpediente[0].expediente_digital};
             }
         }
         return {statusExpediente : false, url : ''};
     }catch(error){
-        return {status : 500, msg : error.message};
+        return {status : false, msg : error.message, url : ''};
+    }
+}
+
+/**
+ * Obtiene la etiqueta de un registro
+ * @param {*} connection 
+ * @param {*} despacho 
+ * @param {*} user 
+ * @returns 
+ */
+const getEtiqueta = async (connection, radicacion = '', despacho = '', user = '') => {
+    try{
+        const queryEtiqueta = await connection.query(`SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = ? AND username IN (?) AND despacho = ? AND etiqueta_suscriptor <> ''`,[radicacion,user,despacho]);
+        if(queryEtiqueta.length > 0){
+            return {statusEtiqueta : true, etiqueta : queryEtiqueta[0].etiqueta_suscriptor};
+        }
+        return {statusEtiqueta : false, etiqueta : ''};
+    }catch(error){
+        return {statusEtiqueta : 500, etiqueta : error.message};
     }
 }
 
@@ -298,9 +309,9 @@ const getExpediente = async (despacho = '', radicacion = '') =>{
  * Obtiene la estructura de los genéricos, desde el departamento hasta el despacho (sólo códigos y nombres)
  * @param {} despacho 
  */
-const getGenericosAll = async (despacho = '') =>{
+const getGenericosAll = async (connection, despacho = '') =>{
     try{
-        const connection = await getConnection();
+        // const connection = await getConnection();
         const queryGenericos = await connection.query(`SELECT ad.IdDes,ad.despacho,ac.IdCorp,ac.corporacion,am.IdMun,am.municipio,adp.IdDep,adp.departamento 
                                     FROM adm_despacho ad 
                                     INNER JOIN adm_corporacion ac ON ad.corporacion_IdCorp = ac.IdCorp
@@ -308,7 +319,7 @@ const getGenericosAll = async (despacho = '') =>{
                                     INNER JOIN adm_depto adp ON am.depto_IdDep = adp.IdDep
                                     WHERE ad.IdDes = ?`,despacho);
         if(queryGenericos.length > 0){
-            connection.end();
+            // connection.end();
             return {status : true, data : queryGenericos[0]};
         }
         return {status : false, data : []};
@@ -329,6 +340,7 @@ module.exports = {
     verifyAuto,
     getExpediente,
     getGenericosAll,
+    getEtiqueta,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

@@ -41,14 +41,14 @@ const startSession = async (req,res)=>{
                             result = await connection.query(`UPDATE ${table_client} SET estado = 'S', fecha_modi = ? WHERE cedula_nit = ?`,[fecha_actual_all,user]);
                             // await update_token(1,user,tipousuario); // Actualiza para tener un token
                             // Se envía correo por terminación de contrato
-                            const { valor : correo_comercial } = await global_c.getParameter(5);
+                            const { valor : correo_comercial } = await global_c.getParameter(connection, 5);
                             let html = `
                                 <h3>Suscriptor: ${nombre}</h3>
                                 <p style="color: #000 !important;">Direccion Oficina: ${direccion_of}</p>
                                 <p style="color: #000 !important;">Teléfono: ${telefono_of}</p>
                                 <p style="color: #000 !important;">Fecha vencimiento: ${fecha_vence}</p>
                             `;
-                            const { valor, parametro } = await global_c.getParameter(1);
+                            const { valor, parametro } = await global_c.getParameter(connection, 1);
                             await global_c.sendEmail(correo_corporativo, correo_comercial, parametro, html);
                             connection.end();
                             return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : valor });
@@ -57,7 +57,7 @@ const startSession = async (req,res)=>{
                         let msg = "";
                         if(fecha_acepta == "0000-00-00 00:00:00" || fecha_acepta == null){
                             terminos_ok = false;
-                            const { valor, parametro } = await global_c.getParameter(8);
+                            const { valor, parametro } = await global_c.getParameter(connection, 8);
                             msg = valor;
                         }
                         // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token

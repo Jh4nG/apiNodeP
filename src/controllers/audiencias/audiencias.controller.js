@@ -83,7 +83,7 @@ const getAudienciasId = async (req,res) =>{
 
 const insertAudiencias = async (req,res) => {
     try {
-        const {  username, ciudad, despacho, radicacion,  proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla } = req.body;
+        const { username, ciudad, despacho, radicacion,  proceso, demandante, demandado, fecha_vence_terminos, descripcion_vence_terminos, idplanilla } = req.body;
         let dataValida = {
             'Usuario' : username,
             'Ciudad' : ciudad,
