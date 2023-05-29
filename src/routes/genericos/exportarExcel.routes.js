@@ -7,7 +7,7 @@ const middleware = require("./../../assets/middleware");
 try{
     const router = Router();
     router.post("/", middleware.ensureAuthenticated, exportarExcelController.exportar);
-    
+    router.post("/deleteFile", middleware.ensureAuthenticated, exportarExcelController.deleteFile);    
     module.exports = router;
 }catch(error){
     console.log(error.message);

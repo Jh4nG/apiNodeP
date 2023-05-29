@@ -460,6 +460,16 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
     }
 }
 
+const deleteExcel = async (nameFile = '') => {
+    try{
+        fs.unlinkSync(`${config.excel}/${nameFile}`);
+        return {status : 200, msg : `Archivo ${msgDeleteOk}`};
+    }catch(error){
+        return {status : 500, msg : error.message};
+    }
+}
+
+
 module.exports = {
     sendEmail,
     generate_token,
@@ -474,6 +484,7 @@ module.exports = {
     getGenericosAll,
     getEtiqueta,
     generateExcel,
+    deleteExcel,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

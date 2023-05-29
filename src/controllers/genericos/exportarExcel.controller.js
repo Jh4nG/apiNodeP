@@ -15,9 +15,20 @@ const exportar = async (req,res) => {
     }
 }
 
+const deleteFile = async(req, res) => {
+    try{
+        const { name_file } = req.body;
+        const resp = await global_c.deleteExcel(name_file);
+        return res.status(resp.status).json(resp);
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
-        exportar
+        exportar,
+        deleteFile
     }
 }catch(error){
     console.log(error.message);
