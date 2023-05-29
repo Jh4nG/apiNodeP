@@ -267,7 +267,7 @@ const exportExcel = async (req,res) =>{
                 {name: "Fecha Vencimiento Terminos", campo : 'fecha_vence_terminos', width : 30},
                 {name: "Descripcion Vencimiento de Terminos", campo : 'descripcion_vence_terminos', width : 50}
             ];
-            let {status, url, msg} = await global_c.generateExcel(name_user, title_report, name_file, heads, rows);
+            let {status, url, msg} = await global_c.generateExcel(username, name_user, title_report, name_file, heads, rows);
             if(status == 200){
                 return res.status(status).json({status, url, msg});
             }

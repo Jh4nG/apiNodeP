@@ -340,7 +340,7 @@ const getGenericosAll = async (connection, despacho = '') =>{
  * @param {*} rows 
  * @returns 
  */
-const generateExcel = async (name_user, title_report, name_file, heads, rows) => {
+const generateExcel = async (username, name_user, title_report, name_file, heads, rows) => {
     try{
         // Libro
         let wb = new xl.Workbook();
@@ -447,8 +447,8 @@ const generateExcel = async (name_user, title_report, name_file, heads, rows) =>
             }
             row++;
         }
-        let nameFile = `${config.excel}/${name_file}.xlsx`;
-        let nameFileExport = `/excelTmp/${name_file}.xlsx`;
+        let nameFile = `${config.excel}/${name_file}_${username}.xlsx`;
+        let nameFileExport = `/excelTmp/${name_file}_${username}.xlsx`;
         
         let result = await wb.writeP(nameFile);
         if(result){
