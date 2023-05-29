@@ -4,10 +4,10 @@ const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, 
 
 const table = "adm_planillas";
 const limit = "LIMIT ?, ?";
-const sqlcount = `SELECT ap.idplanilla FROM ${table} ap`;
 const sql = `SELECT SQL_CALC_FOUND_ROWS ap.idplanilla, ap.despacho, ap.radicacion, ap.notificacion, ap.proceso, ap.demandante, ap.demandado, ap.descripcion, ap.fechapublicacion, ap.departamento, ap.municipio, ap.corporacion, ap.despacho_a, REPLACE(ap.imagen,'Nota: ','') as nota, ap.ubicacion,ap.fechapublicacion as fechapublicacion
              ,am.municipio as name_ciudad
              ,ad.despacho as name_despacho
+             ,ad.localizacion
              ,an.notificacion as name_notificacion
              ,IF(ap.imagen = '', false, true) as nota_status
              ,(SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND username IN (?) AND despacho = ap.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
@@ -28,30 +28,43 @@ const getData = async (req,res) => {
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        let dataValida = {
-            'Usuario' : username,
-            'Fecha inicial' : fi,
-            'Fecha final' : ff
-        }
-        let valida = global_c.validateParams(dataValida);
-        if(valida.status){ // Se inserta
-            const connection = await getConnection();
-            const result = await connection.query(sqlPreview,[group_users,fi,ff,fi,ff]);
+        let {status, count_rows, data, msg} = await getDataResp(username,fi,ff,from,rows,group_users,parent);
+        return res.status(status).json({status, count_rows, data, msg});
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
+const getDataResp = async (username,fi,ff,from,rows,group_users,parent, statusLimit = true, statusAuto = true) => {
+    let dataValida = {
+        'Usuario' : username,
+        'Fecha inicial' : fi,
+        'Fecha final' : ff
+    }
+    let valida = global_c.validateParams(dataValida);
+    if(valida.status){ // Se inserta
+        const connection = await getConnection();
+        const result = await connection.query(sqlPreview,[group_users,fi,ff,fi,ff]);
+        
+        if(result.length > 0 ){
+            let where = [];
+            result.forEach((i,e)=>{
+                let {despacho,radicacion} = i;
+                where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
+            });
             
-            if(result.length > 0 ){
-                let where = [];
-                result.forEach((i,e)=>{
-                    let {despacho,radicacion} = i;
-                    where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
-                });
-                
-                const query = await connection.query(`${sql}
-                                                    WHERE (${where.join(' OR ')}) 
-                                                    AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC
-                                                    ${limit}`,[group_users,fi,ff, from, rows]);
-                if(query.length > 0){
-                    const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
-                    let count_rows = queryCount[0].cantidad;
+            let params = [group_users,fi,ff];
+            if(statusLimit){
+                params.push(from, rows);
+            }
+            const query = await connection.query(`${sql}
+                                                WHERE (${where.join(' OR ')}) 
+                                                AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC
+                                                ${(statusLimit) ? limit : ''}`,params);
+            if(query.length > 0){
+                const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
+                let count_rows = queryCount[0].cantidad;
+                if(statusAuto){
                     for(let i = 0; i < query.length; i++){
                         // Verifica existencia de auto
                         let {radicacion,idplanilla,fechapublicacion} = query[i];
@@ -59,19 +72,17 @@ const getData = async (req,res) => {
                         query[i].auto = status;
                         query[i].ruta_auto = ruta;
                     }
-                    connection.end();
-                    return res.status(200).json({status:200, count_rows, data : query});
                 }
                 connection.end();
-                return res.status(400).json({status:400, data : [], msg: msgSinInfo});
+                return {status:200, count_rows, data : query, msg : ''};
             }
             connection.end();
-            return res.status(400).json({status:400, data : [], msg: msgSinInfo});
+            return {status:400, count_rows: 0, data : [], msg: msgSinInfo};
         }
-        return res.status(400).json({status : 400, msg : valida.msg});
-    }catch(error){
-        return res.json({ status : 500, msg : error.message});
+        connection.end();
+        return {status:400, count_rows: 0, data : [], msg: msgSinInfo};
     }
+    return {status : 400, count_rows: 0, data : [], msg : valida.msg};
 }
 
 const insertData = async (req,res) => {
@@ -163,6 +174,44 @@ const getExpediente = async(req,res)=>{
     }
 }
 
+const exportExcel = async (req,res) =>{
+    try{
+        const { username,fi,ff, name_user, name_file } = req.body;
+        let { group_users,parent } = req.body;
+        group_users = atob(group_users).split(',');
+        parent = atob(parent);
+        let {status, count_rows, data, msg} = await getDataResp(username,fi,ff,0,0,group_users,parent, false, false);
+        if(status == 200){
+            if(data.length > 0){
+                const title_report = "Reporte Notificaciones";
+                const heads = [
+                    {name: "Ciudad", campo : 'name_ciudad', width : 15}, // Este tamaño debe ser fijo para poder respetar la imagen
+                    {name: "Despacho", campo : 'name_despacho', width : 30},
+                    {name: "Locaclización", campo : 'localizacion', width : 30},
+                    {name: "Notificacion", campo : 'name_notificacion', width : 30},
+                    {name: "Radicacion", campo : 'radicacion', width : 30},
+                    {name: "Proceso", campo : 'proceso', width : 30},
+                    {name: "Demandante", campo : 'demandante', width : 40},
+                    {name: "Demandado", campo : 'demandado', width : 40},
+                    {name: "Descripcion", campo : 'descripcion', width : 80},
+                    {name: "Publicacion", campo : 'fechapublicacion', width : 30},
+                    {name: "Ubicación", campo : 'ubicacion', width : 30},
+                    {name: "Etiqueta", campo : 'etiqueta_suscriptor', width : 30},
+                ];
+                let {status, url, msg} = await global_c.generateExcel(username, name_user, title_report, name_file, heads, data);
+                if(status == 200){
+                    return res.status(status).json({status, url, msg});
+                }
+                return res.status(status).json({status, msg});
+            }
+            return res.status(status).json({status, msg});
+        }
+        return res.status(status).json({status, count_rows, data, msg});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message, url : '' });
+    }
+}
+
 try{
     module.exports = {
         getData,
@@ -170,7 +219,8 @@ try{
         updateData,
         deleteData,
         getDataId,
-        getExpediente
+        getExpediente,
+        exportExcel
     }
 }catch(error){
     console.log(error.message);

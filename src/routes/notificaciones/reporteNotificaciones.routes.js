@@ -13,6 +13,7 @@ try{
     router.put("/update", middleware.ensureAuthenticated, reporteNotificacionesController.updateData);
     router.delete("/delete", middleware.ensureAuthenticated, reporteNotificacionesController.deleteData);
     router.get("/:id", middleware.ensureAuthenticated, reporteNotificacionesController.getDataId);
+    router.post("/exportExcel", middleware.ensureAuthenticated, reporteNotificacionesController.exportExcel);
     
     module.exports = router;
 }catch(error){
