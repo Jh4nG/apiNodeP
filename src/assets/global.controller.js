@@ -340,7 +340,7 @@ const getGenericosAll = async (connection, despacho = '') =>{
  * @param {*} rows 
  * @returns 
  */
-const generateExcel = async (name_user, name_file, heads, rows) => {
+const generateExcel = async (name_user, title_report, name_file, heads, rows) => {
     try{
         // Libro
         let wb = new xl.Workbook();
@@ -348,48 +348,105 @@ const generateExcel = async (name_user, name_file, heads, rows) => {
         // Hoja
         let ws = wb.addWorksheet('Reporte');
 
+        // Se añade imagen de provired
+        ws.addImage({
+            path: `${__dirname}/images/provired.png`,
+            type: 'picture',
+            position: {
+                type: 'twoCellAnchor',
+                from: {
+                    col: 1,
+                    colOff: 0,
+                    row: 1,
+                    rowOff: 0,
+                },
+                to: {
+                    col: 2,
+                    colOff: 0,
+                    row: 3,
+                    rowOff: 0,
+                },
+            }
+        });
+
+        // Estilos Cabecera 
+        let styleHeader = wb.createStyle({
+            alignment: {
+                horizontal: 'center',
+                vertical : 'center'
+            },
+            font: {
+                bold: true,
+                color : '#ffffff',
+                size : 16,
+            },
+            fill : {
+                type: 'pattern', // the only one implemented so far.
+                patternType: 'solid', // most common.
+                fgColor:'#6D84A3'
+            }
+        });
+
+        ws.cell(1, 1, 1, heads.length, true).string(title_report).style(styleHeader);
+        ws.row(1).setHeight(60);
+
+        ws.cell(2, 1, 2, heads.length, true).string(`${name_user}`).style(styleHeader);
+        ws.row(1).setHeight(30);
+
         // Estilos
         let style = wb.createStyle({
             font: {
                 color : '#000000',
                 size : 12
+            },
+            alignment: {
+                wrapText : true // ajustar al ancho de la columna
             }
         });
 
-        let styleBlue = wb.createStyle({
+        let styleHeads = wb.createStyle({
             font: {
-                color : '#6D84A3',
-                size : 13
+                bold: true,
+                color : '#ffffff',
+                size : 13,
+            },
+            fill : {
+                type: 'pattern', // the only one implemented so far.
+                patternType: 'solid', // most common.
+                fgColor:'#6D84A3'
             }
         });
 
+        let row = 4;
         // Cabeceras
         for(let i = 0; i<heads.length; i++){
-            ws.cell(1, i+1).string(heads[i]).style(styleBlue);
-            ws.column(i+1).setWidth(30);
+            ws.cell(row, i+1).string(heads[i].name).style(styleHeads);
+            ws.column(i+1).setWidth(heads[i].width);
         }
+        row++;
 
         for(let r = 0; r<rows.length; r++){
             for(let i = 0; i<heads.length; i++){
                 let objeto = rows[r];
-                let valor = objeto[heads[i]];
-                console.log(typeof(valor));
+                let valor = objeto[heads[i].campo];
                 switch(typeof(valor)){
                     case 'number':
-                        ws.cell(r+2, i+1).number(valor).style(style);
+                        ws.cell(row, i+1).number(valor).style(style);
                         break;
                     default:
-                        ws.cell(r+2, i+1).string(`${valor}`).style(style);
+                        ws.cell(row, i+1).string(`${valor}`).style(style);
                         break;
                 }
+                ws.row(row).setHeight(20);
             }
+            row++;
         }
-        console.log('pasa');
         let nameFile = `${config.excel}/${name_file}.xlsx`;
+        let nameFileExport = `/excelTmp/${name_file}.xlsx`;
         
         let result = await wb.writeP(nameFile);
         if(result){
-            return {status : 200, url : nameFile, msg : 'Archivo generado correctamente'}
+            return {status : 200, url : nameFileExport, msg : 'Archivo generado correctamente'}
         }
         return {status : 400, url : '', msg : result.err};
     }catch(error){

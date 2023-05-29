@@ -13,6 +13,7 @@ try{
     router.put("/updateAudiencias", middleware.ensureAuthenticated, audienciasController.updateAudiencias);
     router.delete("/deleteAudiencias", middleware.ensureAuthenticated, audienciasController.deleteAudiencias);    
     router.post("/insertAudiencias", middleware.ensureAuthenticated, audienciasController.insertAudiencias);
+    router.post("/exportExcel", middleware.ensureAuthenticated, audienciasController.exportExcel);
     module.exports = router;
 }catch(error){
     console.log(error.message);

@@ -8,7 +8,10 @@ const base_query = `SELECT
                     ad.despacho as nameDespacho
                     FROM adm_vencimiento_terminos vt
                     INNER JOIN adm_municipio am ON vt.ciudad = am.IdMun
-                    INNER JOIN adm_despacho ad ON vt.despacho = ad.IdDes`;
+                    INNER JOIN adm_despacho ad ON vt.despacho = ad.IdDes
+                    WHERE username = ? 
+                    AND DATE(fecha_vence_terminos) BETWEEN ? AND ? 
+                    ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`;
 
 const getVencimientos = async (req,res) =>{
     try{
@@ -40,10 +43,7 @@ const getAudiencias = async (req, res) => {
         const connection = await getConnection();
         const { username,fi,ff } = req.body;
 
-        const result = await connection.query(`${base_query}
-                                                WHERE username = ? 
-                                                AND DATE(fecha_vence_terminos) BETWEEN ? AND ? 
-                                                ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`,[username,fi,ff]);
+        const result = await connection.query(`${base_query}`,[username,fi,ff]);
         if(result.length > 0){
             connection.end();
             return res.json({ status : 200, count_rows : result.length, data : result});
@@ -250,6 +250,36 @@ const setDetalleEvento = async (type = '', data = {}) =>{
     }
 }
 
+const exportExcel = async (req,res) =>{
+    try{
+        const { username, fi, ff, name_user, name_file  } = req.body;
+        const connection = await getConnection();
+        const rows = await connection.query(`${base_query}`,[username,fi,ff]);
+        if(rows.length > 0){
+            const title_report = "Reporte Mis audiencias y vencimientos";
+            const heads = [
+                {name: "Ciudad", campo : 'nameCiudad', width : 15}, // Este tamaño debe ser fijo para poder respetar la imagen
+                {name: "Despacho", campo : 'nameDespacho', width : 30},
+                {name: "Radicacion", campo : 'radicacion', width : 30},
+                {name: "Proceso", campo : 'proceso', width : 30},
+                {name: "Demandante", campo : 'demandante', width : 40},
+                {name: "Demandado", campo : 'demandado', width : 40},
+                {name: "Fecha Vencimiento Terminos", campo : 'fecha_vence_terminos', width : 30},
+                {name: "Descripcion Vencimiento de Terminos", campo : 'descripcion_vence_terminos', width : 50}
+            ];
+            let {status, url, msg} = await global_c.generateExcel(name_user, title_report, name_file, heads, rows);
+            if(status == 200){
+                return res.status(status).json({status, url, msg});
+            }
+            return res.status(status).json({status, msg});
+        }else{
+            return res.status(200).json({ status : 200, data : [], msg : msgSinInfo});
+        }
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message, url : '' });
+    }
+}
+
 try{
     module.exports = {
         getAudiencias,
@@ -257,7 +287,8 @@ try{
         getAudienciasId,
         updateAudiencias,
         deleteAudiencias,
-        insertAudiencias
+        insertAudiencias,
+        exportExcel
     }
 }catch(error){
     console.log(error.message);
