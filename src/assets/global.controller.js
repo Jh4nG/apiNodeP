@@ -384,14 +384,20 @@ const generateExcel = async (name_user, title_report, name_file, heads, rows) =>
                 type: 'pattern', // the only one implemented so far.
                 patternType: 'solid', // most common.
                 fgColor:'#6D84A3'
+            },
+            border: {
+                bottom: {
+                    style: "thin",
+                    color: "#ffffff"
+                },
             }
         });
 
-        ws.cell(1, 1, 1, heads.length, true).string(title_report).style(styleHeader);
+        ws.cell(1, 2, 1, heads.length, true).string(title_report).style(styleHeader);
         ws.row(1).setHeight(60);
 
-        ws.cell(2, 1, 2, heads.length, true).string(`${name_user}`).style(styleHeader);
-        ws.row(1).setHeight(30);
+        ws.cell(2, 2, 2, heads.length, true).string(`${name_user}`).style(styleHeader);
+        ws.row(2).setHeight(30);
 
         // Estilos
         let style = wb.createStyle({
