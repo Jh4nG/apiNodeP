@@ -194,7 +194,7 @@ const exportExcel = async (req,res) =>{
                     {name: "Demandante", campo : 'demandante', width : 40},
                     {name: "Demandado", campo : 'demandado', width : 40},
                     {name: "Descripcion", campo : 'descripcion', width : 80},
-                    {name: "Publicacion", campo : 'fechapublicacion', width : 30},
+                    {name: "Publicacion", campo : 'fechapublicacion', width : 30, type : 'Date'},
                     {name: "Ubicación", campo : 'ubicacion', width : 30},
                     {name: "Etiqueta", campo : 'etiqueta_suscriptor', width : 30},
                 ];

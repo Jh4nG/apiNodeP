@@ -20,6 +20,7 @@ const msgDeleteErr = 'Error en eliminación de';
 const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el administrado.';
 const msgDataIncorrecta = 'Data incorrecta o incompleta.';
 const msgSinInfo = 'No hay resultados, por favor genere una nueva consulta cambiando los filtros.';
+const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 /**
  * Verifica que los parámetros dentro del array no sean inválidos
@@ -58,6 +59,18 @@ const generate_token = (length) => {
     }
     return b.join("");
 }
+
+/**
+ * Convertir fecha a string 
+ * @param {*} fecha 
+ * @returns 
+ */
+const convetirFecha = (fecha) => {
+	var fecha = fecha.split('-').reverse();
+	fecha[1] = meses[Number(fecha[1]-1)].substr(0,3);
+	return fecha.join('-');
+}
+
 
 /**
  * Verifica el token contra la BD para acceder a la data
@@ -451,7 +464,7 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
                         }
                         break;
                     case 'Date':
-                        
+                            ws.cell(row, i+1).string(convetirFecha(valor)).style(style);
                         break;
                     default:
                         ws.cell(row, i+1).string(`${valor}`).style(style);
