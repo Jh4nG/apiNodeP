@@ -8,10 +8,11 @@ const base_query = `SELECT
                     ad.despacho as nameDespacho
                     FROM adm_vencimiento_terminos vt
                     INNER JOIN adm_municipio am ON vt.ciudad = am.IdMun
-                    INNER JOIN adm_despacho ad ON vt.despacho = ad.IdDes
-                    WHERE username = ? 
-                    AND DATE(fecha_vence_terminos) BETWEEN ? AND ? 
-                    ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`;
+                    INNER JOIN adm_despacho ad ON vt.despacho = ad.IdDes`;
+const base_query_all = `${base_query} 
+                        WHERE username = ? 
+                        AND DATE(fecha_vence_terminos) BETWEEN ? AND ? 
+                        ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC`;
 
 const getVencimientos = async (req,res) =>{
     try{
@@ -43,7 +44,7 @@ const getAudiencias = async (req, res) => {
         const connection = await getConnection();
         const { username,fi,ff } = req.body;
 
-        const result = await connection.query(`${base_query}`,[username,fi,ff]);
+        const result = await connection.query(`${base_query_all}`,[username,fi,ff]);
         if(result.length > 0){
             connection.end();
             return res.json({ status : 200, count_rows : result.length, data : result});
@@ -254,7 +255,7 @@ const exportExcel = async (req,res) =>{
     try{
         const { username, fi, ff, name_user, name_file  } = req.body;
         const connection = await getConnection();
-        const rows = await connection.query(`${base_query}`,[username,fi,ff]);
+        const rows = await connection.query(`${base_query_all}`,[username,fi,ff]);
         if(rows.length > 0){
             const title_report = "Reporte Mis audiencias y vencimientos";
             const heads = [
@@ -264,7 +265,7 @@ const exportExcel = async (req,res) =>{
                 {name: "Proceso", campo : 'proceso', width : 30},
                 {name: "Demandante", campo : 'demandante', width : 40},
                 {name: "Demandado", campo : 'demandado', width : 40},
-                {name: "Fecha Vencimiento Terminos", campo : 'fecha_vence_terminos', width : 30},
+                {name: "Fecha Vencimiento Terminos", campo : 'fecha_vence_terminos', width : 30, type : 'Date'},
                 {name: "Descripcion Vencimiento de Terminos", campo : 'descripcion_vence_terminos', width : 50}
             ];
             let {status, url, msg} = await global_c.generateExcel(username, name_user, title_report, name_file, heads, rows);

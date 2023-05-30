@@ -372,7 +372,7 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
         // Estilos Cabecera 
         let styleHeader = wb.createStyle({
             alignment: {
-                horizontal: 'center',
+                horizontal: 'left',
                 vertical : 'center'
             },
             font: {
@@ -435,15 +435,29 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
             for(let i = 0; i<heads.length; i++){
                 let objeto = rows[r];
                 let valor = objeto[heads[i].campo];
-                switch(typeof(valor)){
+                let type = typeof(valor);
+                if(heads[i].type != undefined){
+                    type = heads[i].type;
+                }
+                switch(type){
                     case 'number':
                         ws.cell(row, i+1).number(valor).style(style);
+                        break;
+                    case 'object':
+                        if(valor === null){
+                            ws.cell(row, i+1).string('N/A').style(style);
+                        }else{
+                            ws.cell(row, i+1).string(valor).style(style);
+                        }
+                        break;
+                    case 'Date':
+                        
                         break;
                     default:
                         ws.cell(row, i+1).string(`${valor}`).style(style);
                         break;
                 }
-                ws.row(row).setHeight(20);
+                // ws.row(row).setHeight(20);
             }
             row++;
         }
@@ -460,6 +474,11 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
     }
 }
 
+/**
+ * Elimina un elemento dentro de la carperta excelTmp
+ * @param {*} nameFile 
+ * @returns 
+ */
 const deleteExcel = async (nameFile = '') => {
     try{
         fs.unlinkSync(`${config.excel}/${nameFile}`);
