@@ -2,33 +2,35 @@ const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
-const table = "adm_clientes_misprocesos acm";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS acm.username, acm.despacho, acm.radicacion, acm.fecha_registro, acm.usuario, acm.proceso, acm.demandante, acm.demandado, acm.codigo_23, acm.juzgado_origen, acm.etiqueta_suscriptor, acm.expediente_digital
+const table = "adm_operativos_misprocesos";
+const query_base = `SELECT SQL_CALC_FOUND_ROWS aom.id_userope, aom.user_operativo, aom.despacho, aom.radicacion, aom.fecha_registro, aom.usuario, aom.proceso, aom.demandante, aom.demandado, aom.codigo_23 
                     ,am.municipio as name_ciudad
                     ,ad.despacho as name_despacho
-                    FROM ${table} 
-                    INNER JOIN adm_municipio am ON left(acm.despacho,5) = am.IdMun
-                    INNER JOIN adm_despacho ad ON acm.despacho = ad.IdDes
-                    WHERE username IN (?) `;
-const order_by = `order by acm.despacho, acm.radicacion`;
+                    ,(SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = aom.radicacion AND username IN (?) AND despacho = aom.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
+                    ,(SELECT expediente_digital FROM adm_clientes_misprocesos WHERE radicacion = aom.radicacion AND despacho = aom.despacho LIMIT 1) as expediente_digital
+                    FROM ${table} aom
+                    INNER JOIN adm_municipio am ON left(aom.despacho,5) = am.IdMun
+                    INNER JOIN adm_despacho ad ON aom.despacho = ad.IdDes
+                    WHERE usuario IN (?) `;
+const order_by = `order by aom.despacho, aom.radicacion`;
 const limit = "LIMIT ?, ?";
 
 const getData = async (req,res) => {
     try{
-        const { demandante_demandado, radicacion, etiqueta, from, rows } = req.body;
+        const { demandante_demandado, radicacion, from, rows } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        let {status, count_rows, data, msg} = await getDataResp(group_users, demandante_demandado, radicacion, etiqueta, from, rows)
+        let {status, count_rows, data, msg} = await getDataResp(group_users, demandante_demandado, radicacion, from, rows);
         return res.status(status).json({status, count_rows, data, msg});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
 }
 
-const getDataResp = async (group_users, demandante_demandado, radicacion, etiqueta, from, rows, statusLimit = true) => {
+const getDataResp = async (group_users, demandante_demandado, radicacion, from, rows, statusLimit = true) =>{
     try{
-        let params = [group_users];
+        let params = [group_users,group_users];
         if(statusLimit){
             params.push(from, rows);
         }
@@ -41,26 +43,20 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, etique
             sqlAdd += ` AND radicacion = ? `;
             params.push(radicacion);
         }
-        if(etiqueta != ''){
-            sqlAdd += ` AND etiqueta_suscriptor LIKE ? `;
-            params.push(`%${etiqueta}%`);
-        }
-
         const connection = await getConnection();
         const result = await connection.query(`${query_base}
                                                 ${sqlAdd}
                                                 ${order_by}
-                                                ${(statusLimit) ? limit : ''}`,params);
+                                                ${(statusLimit) ? limit : ''}`, params);
         const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
         let count_rows = queryCount[0].cantidad;
         let data = [];
         if(result.length > 0 ){
-            data = result;
             connection.end();
-            return {status:200, count_rows, data : data, msg : 'Generado correctamente'};
+            return {status:200, count_rows, data : result, msg : 'Generado correctamente'};
         }
         connection.end();
-        return {status:400, count_rows : 0, data : [], msg : msgSinInfo};
+        return {status:400, count_rows, data, msg : msgSinInfo};
     }catch(error){
         return { status : 500, count_rows : 0, data : [], msg : error.message}
     }
@@ -73,10 +69,10 @@ const insertData = async (req,res) => {
         const result = await connection.query(`INSERT INTO ${table} VALUES()`, [id]);
         if(result.affectedRows > 0){
             connection.end();
-            return res.status(200).json({status:200, msg : `Proceso ${msgInsertOk}`});
+            return res.status(200).json({status:200, msg : `ListadoProcesosActivos ${msgInsertOk}`});
         }
         connection.end();
-        return res.status(400).json({status:400, msg : `${msgInsertErr} Proceso. ${msgTry}`});
+        return res.status(400).json({status:400, msg : `${msgInsertErr} ListadoProcesosActivos. ${msgTry}`});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
@@ -84,39 +80,15 @@ const insertData = async (req,res) => {
 
 const updateData = async (req,res) => {
     try{
-        const { expediente_digital, username, despacho, radicacion, codigo_23 } = req.body;
-        let { demandante, demandado, etiqueta_suscriptor }  = req.body;
-        let dataValida = {
-            "Usuario" : username, 
-            "Despacho" : despacho, 
-            "Radicado" : radicacion, 
-            "Radicado 23" : codigo_23,
-            "Demandante" : demandante,
-            "Demandado" : demandado
-        }
-        let valida = global_c.validateParams(dataValida);
-        if(valida.status){ // Se actualiza
-            demandante = demandante.toUpperCase().replace('/','');
-            demandado = demandado.toUpperCase().replace('/','');
-            etiqueta_suscriptor = etiqueta_suscriptor.replace('/','');
-            const connection = await getConnection();
-            const result = await connection.query(`UPDATE ${table}
-                                                    SET demandante = ?,
-                                                    demandado = ?,
-                                                    etiqueta_suscriptor = ?,
-                                                    expediente_digital = ?
-                                                    WHERE username = ?
-                                                    AND despacho = ?
-                                                    AND radicacion = ?
-                                                    AND codigo_23 = ?`, [demandante, demandado, etiqueta_suscriptor, expediente_digital, username, despacho, radicacion, codigo_23]);
-            if(result.affectedRows > 0){
-                connection.end();
-                return res.status(200).json({status:200, msg : `Proceso ${msgUpdateOk}`});
-            }
+        const connection = await getConnection();
+        const { id } = req.body;
+        const result = await connection.query(`UPDATE ${table} SET , WHERE id = ? `, [id]);
+        if(result.affectedRows > 0){
             connection.end();
-            return res.status(400).json({status:400, msg : `${msgUpdateErr} Proceso. ${msgTry}`});
+            return res.status(200).json({status:200, msg : `ListadoProcesosActivos ${msgUpdateOk}`});
         }
-        return res.status(400).json({status : 400, msg : valida.msg});
+        connection.end();
+        return res.status(400).json({status:400, msg : `${msgUpdateErr} ListadoProcesosActivos. ${msgTry}`});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
@@ -124,15 +96,23 @@ const updateData = async (req,res) => {
 
 const deleteData = async (req,res)=>{
     try{
-        const connection = await getConnection();
         const { id } = req.body;
-        const result = await connection.query(`DELETE FROM ${table} WHERE id = ?`,[id]);
-        if(result.affectedRows > 0){
+        
+        const connection = await getConnection();
+        const insert = await connection.query(`INSERT INTO adm_listado_activos_eliminados (depto,ciudad,despacho,suscriptor,radicado,rad23,fecha_registro,proceso,demandante,demandado)
+                                                SELECT left(despacho,2),left(despacho,5),despacho,usuario,radicacion,codigo_23,fecha_registro,proceso,demandante,demandado FROM ${table} WHERE id_userope = ?`,[id]);
+        
+        if(insert.affectedRows > 0){
+            const result = await connection.query(`DELETE FROM ${table} WHERE id_userope = ?`,[id]);
+            if(result.affectedRows > 0){
+                connection.end();
+                return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}`});
+            }
             connection.end();
-            return res.status(200).json({status : 200, msg : `Proceso ${msgDeleteOk}`});
+            return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`});
         }
         connection.end();
-        return res.status(400).json({status : 400, msg : `${msgDeleteErr} Proceso. ${msgTry}`});
+        return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`, msgExtra : 'Error en inserción activos eliminados.'});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
     }
@@ -156,15 +136,14 @@ const getDataId = async (req,res)=>{
 
 const exportExcel = async (req,res) =>{
     try{
-        const { username, name_user, name_file } = req.body;
-        const { demandante_demandado, radicacion, etiqueta } = req.body;
+        const { username, name_user, name_file, demandante_demandado, radicacion } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        let {status, count_rows, data, msg} = await getDataResp(group_users, demandante_demandado, radicacion, etiqueta, 0, 0, false)
+        let {status, count_rows, data, msg} = await getDataResp(group_users, demandante_demandado, radicacion, 0, 0, false);
         if(status == 200){
             if(data.length > 0){
-                const title_report = "Reporte Listado General";
+                const title_report = "Listado Procesos Activos";
                 const heads = [
                     {name: "Ciudad", campo : 'name_ciudad', width : 15}, // Este tamaño debe ser fijo para poder respetar la imagen
                     {name: "Despacho", campo : 'name_despacho', width : 30},
