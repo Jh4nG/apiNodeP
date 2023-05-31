@@ -413,13 +413,30 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
         ws.row(2).setHeight(30);
 
         // Estilos
-        let style = wb.createStyle({
+        let style = {
             font: {
                 color : '#000000',
-                size : 12
+                size : 11
             },
             alignment: {
                 wrapText : true // ajustar al ancho de la columna
+            }
+        };
+
+        let styleRowGray = wb.createStyle({
+            ...style,
+            fill : {
+                type: 'pattern', // the only one implemented so far.
+                patternType: 'solid', // most common.
+                fgColor:'#F5F5F5'
+            }
+        });
+        let styleRowWhite = wb.createStyle({
+            ...style,
+            fill : {
+                type: 'pattern', // the only one implemented so far.
+                patternType: 'solid', // most common.
+                fgColor:'#FFFFFF'
             }
         });
 
@@ -445,6 +462,7 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
         row++;
 
         for(let r = 0; r<rows.length; r++){
+            let style = ( r % 2 == 0) ? styleRowGray : styleRowWhite;
             for(let i = 0; i<heads.length; i++){
                 let objeto = rows[r];
                 let valor = objeto[heads[i].campo];
@@ -457,7 +475,7 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
                         ws.cell(row, i+1).number(valor).style(style);
                         break;
                     case 'object':
-                        if(valor === null){
+                        if(valor === null || valor.trim() === ''){
                             ws.cell(row, i+1).string('N/A').style(style);
                         }else{
                             ws.cell(row, i+1).string(valor).style(style);
@@ -466,11 +484,14 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
                     case 'Date':
                             ws.cell(row, i+1).string(convetirFecha(valor)).style(style);
                         break;
+                    case 'Datetime':
+                        valor = `${convetirFecha(valor.split(' ')[0])} ${valor.split(' ')[1]}`;
+                        ws.cell(row, i+1).string(valor).style(style);
+                    break;
                     default:
                         ws.cell(row, i+1).string(`${valor}`).style(style);
                         break;
                 }
-                // ws.row(row).setHeight(20);
             }
             row++;
         }
