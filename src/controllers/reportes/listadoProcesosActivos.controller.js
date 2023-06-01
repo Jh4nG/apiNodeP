@@ -1,17 +1,21 @@
+const request = require('request');
 const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
-const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
+const { correo_corporativo, fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo, secret_key_captcha } = global_c;
 
 const table = "adm_operativos_misprocesos";
 const query_base = `SELECT SQL_CALC_FOUND_ROWS aom.id_userope, aom.user_operativo, aom.despacho, aom.radicacion, aom.fecha_registro, aom.usuario, aom.proceso, aom.demandante, aom.demandado, aom.codigo_23 
+                    ,left(aom.despacho,5) as municipio
                     ,am.municipio as name_ciudad
                     ,ad.despacho as name_despacho
+                    ,adp.departamento as name_departamento
                     ,(SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = aom.radicacion AND username IN (?) AND despacho = aom.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
                     ,(SELECT expediente_digital FROM adm_clientes_misprocesos WHERE radicacion = aom.radicacion AND despacho = aom.despacho LIMIT 1) as expediente_digital
                     FROM ${table} aom
                     INNER JOIN adm_municipio am ON left(aom.despacho,5) = am.IdMun
                     INNER JOIN adm_despacho ad ON aom.despacho = ad.IdDes
-                    WHERE usuario IN (?) `;
+                    INNER JOIN adm_depto adp ON left(aom.despacho,2) = adp.IdDep
+                    WHERE aom.usuario IN (?) `;
 const order_by = `order by aom.despacho, aom.radicacion`;
 const limit = "LIMIT ?, ?";
 
@@ -96,25 +100,80 @@ const updateData = async (req,res) => {
 
 const deleteData = async (req,res)=>{
     try{
-        const { id } = req.body;
-        
-        const connection = await getConnection();
-        const insert = await connection.query(`INSERT INTO adm_listado_activos_eliminados (depto,ciudad,despacho,suscriptor,radicado,rad23,fecha_registro,proceso,demandante,demandado)
-                                                SELECT left(despacho,2),left(despacho,5),despacho,usuario,radicacion,codigo_23,fecha_registro,proceso,demandante,demandado FROM ${table} WHERE id_userope = ?`,[id]);
-        
-        if(insert.affectedRows > 0){
-            const result = await connection.query(`DELETE FROM ${table} WHERE id_userope = ?`,[id]);
-            if(result.affectedRows > 0){
+        const { id, name_user, username, captcha } = req.body;
+        let { group_users,parent } = req.body;
+        group_users = atob(group_users).split(',');
+        parent = atob(parent);
+        var verificationUrl = "https://www.google.com/recaptcha/api/siteverify?secret=" + secret_key_captcha + "&response=" + captcha + "&remoteip=" + req.connection.remoteAddress;
+        request(verificationUrl,async function(error,response,body) {
+            body = JSON.parse(body);
+            // Success will be true or false depending upon captcha validation.
+            if(body.success !== undefined && !body.success) {
+              return res.status(400).json({status : 400, "msg" : "Error captcha, verifique nuevamente"});
+            }
+            const connection = await getConnection();
+            const insert = await connection.query(`INSERT INTO adm_listado_activos_eliminados (depto,ciudad,despacho,suscriptor,radicado,rad23,fecha_registro,proceso,demandante,demandado)
+                                                    SELECT left(despacho,2),left(despacho,5),despacho,usuario,radicacion,codigo_23,fecha_registro,proceso,demandante,demandado FROM ${table} WHERE id_userope = ?`,[id]);
+            
+            if(insert.affectedRows > 0){
+                const dataEmail = await getDataEmail(connection, [group_users,group_users,id], username);
+                const result = await connection.query(`DELETE FROM ${table} WHERE id_userope = ?`,[id]);
+                if(result.affectedRows > 0){
+                    const { valor:correo_comercial } = await global_c.getParameter(connection,5);
+                    const { valor:web_master } = await global_c.getParameter(connection,14);
+                    if(dataEmail.status){
+                        let html = `
+                                <p style="color: #000 !important;"><b>Suscriptor:</b> ${name_user} </p>
+                                <p style="color: #000 !important;"><b>Despacho:</b> ${dataEmail.despacho} </p>
+                                <p style="color: #000 !important;"><b>Ciudad:</b> ${dataEmail.municipio} </p>
+                                <p style="color: #000 !important;"><b>Departamento:</b> ${dataEmail.departamento} </p>
+                                <p style="color: #000 !important;"><b>Radicado (9 digitos):</b> ${dataEmail.radicado} </p>
+                                <p style="color: #000 !important;"><b>Radicado (23 digitos):</b> ${dataEmail.codigo_23} </p>
+                                <p style="color: #000 !important;"><b>Tipo de Proceso:</b> ${dataEmail.proceso} </p>
+                                <p style="color: #000 !important;"><b>Demandante:</b> ${dataEmail.demandante} </p>
+                                <p style="color: #000 !important;"><b>Demandado:</b> ${dataEmail.demandado} </p>
+                            `;
+                        await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`);
+                    }
+                    connection.end();
+                    return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}`});
+                }
                 connection.end();
-                return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}`});
+                return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`});
             }
             connection.end();
-            return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`});
-        }
-        connection.end();
-        return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`, msgExtra : 'Error en inserción activos eliminados.'});
+            return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`, msgExtra : 'Error en inserción activos eliminados.'});
+          });
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
+    }
+}
+
+const getDataEmail = async (connection, params, suscriptor) => {
+    try{
+        let dataSendEmail = {};
+        const result = await connection.query(`${query_base}
+                                                AND aom.id_userope = ?`, params);
+        if(result.length>0){
+            let res  = result[0];
+            dataSendEmail.status = true;
+            dataSendEmail.municipio = res.name_ciudad;
+            dataSendEmail.despacho = res.name_despacho;
+            dataSendEmail.departamento = res.name_departamento;
+            dataSendEmail.radicado = res.radicacion;
+            dataSendEmail.codigo_23 = res.codigo_23;
+            dataSendEmail.proceso = res.proceso;
+            dataSendEmail.demandante = res.demandante;
+            dataSendEmail.demandado = res.demandado;
+            const { status, data } = await global_c.getParentUserEmail(connection, suscriptor);
+            if(status == 200) {
+                dataSendEmail.emails = data.emails;
+            }
+            return dataSendEmail;
+        }
+        return { status : false };
+    }catch(error){
+        return { status : false };
     }
 }
 

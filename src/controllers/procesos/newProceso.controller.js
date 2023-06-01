@@ -54,16 +54,16 @@ const insertData = async (req,res) => {
                 const dataEmail = await getDataEmail(depto,municipio,corporacion,despacho,suscriptor);
                 let html = `
                                 <h3>${subject}</h3>
-                                <p style="color: #000 !important;">Suscriptor: ${dataEmail.nombre} </p>
-                                <p style="color: #000 !important;">Despacho: ${dataEmail.despacho} </p>
-                                <p style="color: #000 !important;">Ciudad: ${dataEmail.municipio} </p>
-                                <p style="color: #000 !important;">Departamento: ${dataEmail.departamento} </p>
-                                <p style="color: #000 !important;">Radicado (9 digitos): ${radicacion} </p>
-                                <p style="color: #000 !important;">Juzgado de Origen: ${juzgado_origen} </p>
-                                <p style="color: #000 !important;">Radicado (23 digitos): ${codigo23} </p>
-                                <p style="color: #000 !important;">Tipo de Proceso: ${proceso} </p>
-                                <p style="color: #000 !important;">Demandante: ${demandante} </p>
-                                <p style="color: #000 !important;">Demandado: ${demandado} </p>
+                                <p style="color: #000 !important;"><b>Suscriptor:</b> ${dataEmail.nombre} </p>
+                                <p style="color: #000 !important;"><b>Despacho:</b> ${dataEmail.despacho} </p>
+                                <p style="color: #000 !important;"><b>Ciudad:</b> ${dataEmail.municipio} </p>
+                                <p style="color: #000 !important;"><b>Departamento:</b> ${dataEmail.departamento} </p>
+                                <p style="color: #000 !important;"><b>Radicado (9 digitos):</b> ${radicacion} </p>
+                                <p style="color: #000 !important;"><b>Juzgado de Origen:</b> ${juzgado_origen} </p>
+                                <p style="color: #000 !important;"><b>Radicado (23 digitos):</b> ${codigo23} </p>
+                                <p style="color: #000 !important;"><b>Tipo de Proceso:</b> ${proceso} </p>
+                                <p style="color: #000 !important;"><b>Demandante:</b> ${demandante} </p>
+                                <p style="color: #000 !important;"><b>Demandado:</b> ${demandado} </p>
                             `;
                 
                 await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Suscripcion de Nuevos Procesos", html, `${correo_comercial},${web_master}`);

@@ -44,9 +44,9 @@ const startSession = async (req,res)=>{
                             const { valor : correo_comercial } = await global_c.getParameter(connection, 5);
                             let html = `
                                 <h3>Suscriptor: ${nombre}</h3>
-                                <p style="color: #000 !important;">Direccion Oficina: ${direccion_of}</p>
-                                <p style="color: #000 !important;">Teléfono: ${telefono_of}</p>
-                                <p style="color: #000 !important;">Fecha vencimiento: ${fecha_vence}</p>
+                                <p style="color: #000 !important;"><b>Direccion Oficina:</b> ${direccion_of}</p>
+                                <p style="color: #000 !important;"><b>Teléfono:</b> ${telefono_of}</p>
+                                <p style="color: #000 !important;"><b>Fecha vencimiento:</b> ${fecha_vence}</p>
                             `;
                             const { valor, parametro } = await global_c.getParameter(connection, 1);
                             await global_c.sendEmail(correo_corporativo, correo_comercial, parametro, html);
