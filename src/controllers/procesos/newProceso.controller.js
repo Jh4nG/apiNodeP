@@ -32,11 +32,9 @@ const insertData = async (req,res) => {
             "Demandante" : demandante,
             "Demandado" : demandado,
             "Radicado" : radicacion,
-            "Juzgado Origen" : juzgado_origen,
             "Radicado 23 digitos" : codigo23,
             "Proceso" : proceso,
-            "Suscriptor" : suscriptor,
-            "Etiqueta" : etiqueta
+            "Suscriptor" : suscriptor
         };
         let valida = global_c.validateParams(dataValida);
         if(valida.status){ // Se inserta

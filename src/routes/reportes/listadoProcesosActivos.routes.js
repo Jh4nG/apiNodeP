@@ -13,6 +13,7 @@ try{
     router.delete("/delete", middleware.ensureAuthenticated, listadoProcesosActivosController.deleteData);
     router.get("/:id", middleware.ensureAuthenticated, listadoProcesosActivosController.getDataId);
     router.post("/exportExcel", middleware.ensureAuthenticated, listadoProcesosActivosController.exportExcel);
+    router.post("/informeProcesal", middleware.ensureAuthenticated, listadoProcesosActivosController.getDataInformeProcesal);    
     
     module.exports = router;
 }catch(error){

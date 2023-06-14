@@ -10,12 +10,13 @@ const sql = `SELECT SQL_CALC_FOUND_ROWS ap.idplanilla, ap.despacho, ap.radicacio
              ,ad.localizacion
              ,an.notificacion as name_notificacion
              ,IF(ap.imagen = '', false, true) as nota_status
-             ,(SELECT etiqueta_suscriptor FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND username IN (?) AND despacho = ap.despacho AND etiqueta_suscriptor <> '' LIMIT 1) as etiqueta_suscriptor
-             ,(SELECT expediente_digital FROM adm_clientes_misprocesos WHERE radicacion = ap.radicacion AND despacho = ap.despacho LIMIT 1) as expediente_digital
+             -- ,acm.etiqueta_suscriptor
+             -- ,acm.expediente_digital
              FROM ${table} ap
              INNER JOIN adm_municipio am ON ap.municipio = am.IdMun
              INNER JOIN adm_despacho ad ON ap.despacho = ad.IdDes
-             INNER JOIN adm_notificacion an ON ap.notificacion = an.id_notificacion`;
+             INNER JOIN adm_notificacion an ON ap.notificacion = an.id_notificacion
+             LEFT JOIN acm ON (acm.radicacion = ap.radicacion AND acm.despacho = ap.despacho)`;
 
 const sqlPreview = `SELECT radicacion,despacho FROM adm_clientes_misprocesos WHERE username IN (?)
                     AND radicacion IN (SELECT radicacion FROM ${table} WHERE DATE(fechapublicacion) BETWEEN ? AND ?)
@@ -48,19 +49,32 @@ const getDataResp = async (username,fi,ff,from,rows,group_users,parent, statusLi
         
         if(result.length > 0 ){
             let where = [];
+            let whereAcm = [];
             result.forEach((i,e)=>{
                 let {despacho,radicacion} = i;
                 where.push(`(ap.despacho = '${despacho}' AND ap.radicacion = '${radicacion}')`);
+                whereAcm.push(`(despacho = '${despacho}' AND radicacion = '${radicacion}')`);
             });
             
-            let params = [group_users,fi,ff];
+            let params = [/*group_users,*/fi,ff];
             if(statusLimit){
                 params.push(from, rows);
             }
-            const query = await connection.query(`${sql}
+            console.log(`WITH
+            acm as (SELECT radicacion,username,despacho,etiqueta_suscriptor,expediente_digital FROM adm_clientes_misprocesos WHERE (${whereAcm.join(' OR ')}))
+
+            ${sql}
+            WHERE (${where.join(' OR ')}) 
+            AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC
+            ${(statusLimit) ? limit : ''}`);
+            const query = await connection.query(`WITH
+                                                acm as (SELECT radicacion,username,despacho,etiqueta_suscriptor,expediente_digital FROM adm_clientes_misprocesos WHERE (${whereAcm.join(' OR ')}))
+
+                                                ${sql}
                                                 WHERE (${where.join(' OR ')}) 
                                                 AND DATE(ap.fechapublicacion) BETWEEN ? AND ? ORDER BY ${order} DESC
                                                 ${(statusLimit) ? limit : ''}`,params);
+
             if(query.length > 0){
                 const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
                 let count_rows = queryCount[0].cantidad;
@@ -181,6 +195,8 @@ const exportExcel = async (req,res) =>{
         group_users = atob(group_users).split(',');
         parent = atob(parent);
         let {status, count_rows, data, msg} = await getDataResp(username,fi,ff,0,0,group_users,parent, false, false);
+        res.json({status, count_rows, data, msg});
+        return;
         if(status == 200){
             if(data.length > 0){
                 const title_report = "Reporte Notificaciones";

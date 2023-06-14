@@ -29,9 +29,6 @@ const getData = async (req,res) => {
 const getDataResp = async (group_users, demandante_demandado, radicacion, etiqueta, from, rows, statusLimit = true) => {
     try{
         let params = [group_users];
-        if(statusLimit){
-            params.push(from, rows);
-        }
         let sqlAdd = ``;
         if(demandante_demandado != ''){
             sqlAdd += ` AND (demandante LIKE ? OR demandado LIKE ?) `;
@@ -45,8 +42,15 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, etique
             sqlAdd += ` AND etiqueta_suscriptor LIKE ? `;
             params.push(`%${etiqueta}%`);
         }
-
+        if(statusLimit){
+            params.push(from, rows);
+        }
+        
         const connection = await getConnection();
+        console.log(`${query_base}
+        ${sqlAdd}
+        ${order_by}
+        ${(statusLimit) ? limit : ''}`,params);
         const result = await connection.query(`${query_base}
                                                 ${sqlAdd}
                                                 ${order_by}

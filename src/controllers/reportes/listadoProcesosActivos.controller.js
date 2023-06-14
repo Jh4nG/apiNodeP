@@ -35,9 +35,6 @@ const getData = async (req,res) => {
 const getDataResp = async (group_users, demandante_demandado, radicacion, from, rows, statusLimit = true) =>{
     try{
         let params = [group_users,group_users];
-        if(statusLimit){
-            params.push(from, rows);
-        }
         let sqlAdd = ``;
         if(demandante_demandado != ''){
             sqlAdd += ` AND (demandante LIKE ? OR demandado LIKE ?) `;
@@ -46,6 +43,9 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, from, 
         if(radicacion != ''){
             sqlAdd += ` AND radicacion = ? `;
             params.push(radicacion);
+        }
+        if(statusLimit){
+            params.push(from, rows);
         }
         const connection = await getConnection();
         const result = await connection.query(`${query_base}
@@ -228,6 +228,32 @@ const exportExcel = async (req,res) =>{
     }
 }
 
+const getDataInformeProcesal = async (req,res) => {
+    try{
+        const { username, despacho, radicacion } = req.body;
+        const connection = await getConnection();
+
+        const resultCmpInfoProcesal = await connection.query(`SELECT * FROM adm_cmp_informe_procesal WHERE activo = 1`);
+        if(resultCmpInfoProcesal.length > 0){
+            let cmpInfoProcesal = resultCmpInfoProcesal;
+            let data = [];
+            let multiData = [];
+            const resultData = await connection.query(`SELECT * FROM adm_informe_procesal WHERE despacho = ? AND radicacion = ?`,[despacho,radicacion]);
+            if(resultData.length > 0){
+                data = resultData[0];
+                const resultDataMultiple = await connection.query(`SELECT * FROM adm_informe_procesal_multidata WHERE id_informe_procesal = ?`, data.id);
+                if(resultData.length > 0){
+                    multiData = resultDataMultiple;
+                }
+            }
+            return res.status(200).json({ status : 200, cmpInfoProcesal, data, multiData});
+        }
+        return res.status(400).json({ status : 400, msg : 'Error en obtener data, vuevla a generar el proceso.'});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
         getData,
@@ -235,7 +261,8 @@ try{
         updateData,
         deleteData,
         getDataId,
-        exportExcel
+        exportExcel,
+        getDataInformeProcesal
     }
 }catch(error){
     console.log(error.message);
