@@ -45,7 +45,7 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, etique
         if(statusLimit){
             params.push(from, rows);
         }
-        
+
         const connection = await getConnection();
         console.log(`${query_base}
         ${sqlAdd}
@@ -102,7 +102,7 @@ const updateData = async (req,res) => {
         if(valida.status){ // Se actualiza
             demandante = demandante.toUpperCase().replace('/','');
             demandado = demandado.toUpperCase().replace('/','');
-            etiqueta_suscriptor = etiqueta_suscriptor.replace('/','');
+            etiqueta_suscriptor = (etiqueta_suscriptor != null && etiqueta_suscriptor != undefined) ? etiqueta_suscriptor.replace('/','') : etiqueta_suscriptor;
             const connection = await getConnection();
             const result = await connection.query(`UPDATE ${table}
                                                     SET demandante = ?,
