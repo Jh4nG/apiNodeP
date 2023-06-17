@@ -14,6 +14,7 @@ const reporteNotificacionesRoutes = require ("./routes/notificaciones/reporteNot
 const newProcesoRoutes = require ("./routes/procesos/newProceso.routes");
 const exportarExcelRoutes = require ("./routes/genericos/exportarExcel.routes");
 const listadoProcesosGeneralesRoutes = require ("./routes/reportes/listadoProcesosGenerales.routes");
+const eliminacionMasivaRoutes = require ("./routes/reportes/eliminacionMasiva.routes");
 //FinpathRoutes
 
 try{
@@ -41,6 +42,7 @@ try{
     app.use("/api/newProceso", newProcesoRoutes); 
     app.use("/api/exportarExcel", exportarExcelRoutes); 
     app.use("/api/listadoProcesosGenerales", listadoProcesosGeneralesRoutes); 
+    app.use("/api/eliminacionMasiva", eliminacionMasivaRoutes); 
     //FinRoutes
 
     // Exportando rutas
