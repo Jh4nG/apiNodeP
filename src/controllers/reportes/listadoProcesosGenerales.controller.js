@@ -9,9 +9,8 @@ const query_base = `SELECT SQL_CALC_FOUND_ROWS acm.username, acm.despacho, acm.r
                     FROM ${table} 
                     INNER JOIN adm_municipio am ON left(acm.despacho,5) = am.IdMun
                     INNER JOIN adm_despacho ad ON acm.despacho = ad.IdDes
-                    WHERE username IN (?) 
-                    `;
-const order_by = `order by despacho, radicacion`;
+                    WHERE username IN (?) `;
+const order_by = `order by acm.despacho, acm.radicacion`;
 const limit = "LIMIT ?, ?";
 
 const getData = async (req,res) => {
@@ -21,7 +20,7 @@ const getData = async (req,res) => {
         group_users = atob(group_users).split(',');
         parent = atob(parent);
         let {status, count_rows, data, msg} = await getDataResp(group_users, demandante_demandado, radicacion, etiqueta, from, rows)
-        return res.status(200).json({status, count_rows, data, msg});
+        return res.status(status).json({status, count_rows, data, msg});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
@@ -43,12 +42,15 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, etique
             sqlAdd += ` AND etiqueta_suscriptor LIKE ? `;
             params.push(`%${etiqueta}%`);
         }
-
         if(statusLimit){
             params.push(from, rows);
         }
 
         const connection = await getConnection();
+        console.log(`${query_base}
+        ${sqlAdd}
+        ${order_by}
+        ${(statusLimit) ? limit : ''}`,params);
         const result = await connection.query(`${query_base}
                                                 ${sqlAdd}
                                                 ${order_by}
@@ -62,7 +64,7 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, etique
             return {status:200, count_rows, data : data, msg : 'Generado correctamente'};
         }
         connection.end();
-        return {status:400, count_rows, data : data, msg : msgSinInfo};
+        return {status:400, count_rows : 0, data : [], msg : msgSinInfo};
     }catch(error){
         return { status : 500, count_rows : 0, data : [], msg : error.message}
     }
@@ -100,7 +102,7 @@ const updateData = async (req,res) => {
         if(valida.status){ // Se actualiza
             demandante = demandante.toUpperCase().replace('/','');
             demandado = demandado.toUpperCase().replace('/','');
-            etiqueta_suscriptor = etiqueta_suscriptor.replace('/','');
+            etiqueta_suscriptor = (etiqueta_suscriptor != null && etiqueta_suscriptor != undefined) ? etiqueta_suscriptor.replace('/','') : etiqueta_suscriptor;
             const connection = await getConnection();
             const result = await connection.query(`UPDATE ${table}
                                                     SET demandante = ?,

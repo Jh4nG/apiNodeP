@@ -20,7 +20,8 @@
     "file-system": "^2.2.2",
     "handlebars": "^4.7.7",
     "nodemailer": "^6.9.1",
-    "promise-mysql": "^5.2.0"
+    "promise-mysql": "^5.2.0",
+    "request": "^2.88.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.21.0",

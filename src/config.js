@@ -10,6 +10,8 @@ module.exports = {
     port : process.env.port,
     // hash de peticiones
     hash : process.env.hash,
+    // Secrect key capcha
+    secret_key : process.env.secret_key,
     // variables envío emails
     host_mail : process.env.host_mail,
     SMTPAuth_mail : process.env.SMTPAuth_mail,

@@ -21,6 +21,7 @@ const msgTry = 'Vuelva a intentarlo, si el error persiste contacte con el admini
 const msgDataIncorrecta = 'Data incorrecta o incompleta.';
 const msgSinInfo = 'No hay resultados, por favor genere una nueva consulta cambiando los filtros.';
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const secret_key_captcha = config.secret_key;
 
 /**
  * Verifica que los parámetros dentro del array no sean inválidos
@@ -549,5 +550,6 @@ module.exports = {
     msgDeleteErr,
     msgTry,
     msgDataIncorrecta,
-    msgSinInfo
+    msgSinInfo,
+    secret_key_captcha
 }
