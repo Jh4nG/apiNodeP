@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const fs = require('file-system');
 const { getConnection } = require("./../database/database");
 const { type } = require('os');
+const request = require('request');
 
 const correo_corporativo = 'webmaster@proviredcolombia.com';
 const d = new Date();
@@ -523,6 +524,86 @@ const deleteExcel = async (nameFile = '') => {
     }
 }
 
+/**
+ * Verifica el captcha y devuelve false o verdadero
+ * @param {any} remoteAddress 
+ * @param {string} captcha 
+ * @returns 
+ */
+const verifyCaptcha = (remoteAddress, captcha) => {
+    try{
+        var verificationUrl = "https://www.google.com/recaptcha/api/siteverify?secret=" + secret_key_captcha + "&response=" + captcha + "&remoteip=" + remoteAddress;
+        return new Promise(function (resolve, reject) {
+            request(verificationUrl,function(error,response,body) {
+                if(error){
+                    resolve({statusCaptcha : false, msg_captcha : error});
+                    return;
+                }
+                if(body.success !== undefined && !body.success) {
+                    resolve({statusCaptcha : false, msg_captcha : "Error captcha, verifique nuevamente"});
+                    return;
+                }
+                resolve({statusCaptcha : true});
+                return;
+            });
+        });    
+    }catch(error){
+        return {statusCaptcha : false, msg_captcha : error};
+    }
+}
+
+const deleteActivos = async (connection, id = 0) =>{
+    const insert = await connection.query(`INSERT INTO adm_listado_activos_eliminados (depto,ciudad,despacho,suscriptor,radicado,rad23,fecha_registro,proceso,demandante,demandado)
+                                                    SELECT left(despacho,2),left(despacho,5),despacho,usuario,radicacion,codigo_23,fecha_registro,proceso,demandante,demandado FROM adm_operativos_misprocesos WHERE id_userope = ?`,[id]);
+    if(insert.affectedRows > 0){
+        const result = await connection.query(`DELETE FROM adm_operativos_misprocesos WHERE id_userope = ?`,[id]);
+        if(result.affectedRows > 0){
+            return {status : 200, msg : `Proceso ${msgDeleteOk}`};
+        }
+        return {status : 400, msg : `${msgDeleteErr} Proceso. ${msgTry}`};
+    }
+    return {status : false, msg : `${msgDeleteErr} Proceso. ${msgTry}`, msgExtra : 'Error en inserción activos eliminados.'};
+}
+
+/**
+ * Se obtiene la data del registro eliminado para poder utilizarza en el envío del email
+ * @param {*} connection 
+ * @param {*} params 
+ * @param {*} suscriptor 
+ * @returns 
+ */
+const getDataEmailDeleteActivos = async (connection, params) => {
+    try{
+        let dataSendEmail = {};
+        const result = await connection.query(`SELECT aom.id_userope, aom.user_operativo, aom.despacho, aom.radicacion, aom.fecha_registro, aom.usuario, aom.proceso, aom.demandante, aom.demandado, aom.codigo_23 
+                                                ,left(aom.despacho,5) as municipio
+                                                ,am.municipio as name_ciudad
+                                                ,ad.despacho as name_despacho
+                                                ,adp.departamento as name_departamento
+                                                FROM adm_operativos_misprocesos aom
+                                                INNER JOIN adm_municipio am ON left(aom.despacho,5) = am.IdMun
+                                                INNER JOIN adm_despacho ad ON aom.despacho = ad.IdDes
+                                                INNER JOIN adm_depto adp ON left(aom.despacho,2) = adp.IdDep
+                                                WHERE aom.usuario IN (?) 
+                                                AND aom.id_userope = ?`, params);
+        if(result.length>0){
+            let res  = result[0];
+            dataSendEmail.status = true;
+            dataSendEmail.municipio = res.name_ciudad;
+            dataSendEmail.despacho = res.name_despacho;
+            dataSendEmail.departamento = res.name_departamento;
+            dataSendEmail.radicado = res.radicacion;
+            dataSendEmail.codigo_23 = res.codigo_23;
+            dataSendEmail.proceso = res.proceso;
+            dataSendEmail.demandante = res.demandante;
+            dataSendEmail.demandado = res.demandado;
+            return dataSendEmail;
+        }
+        return { status : false };
+    }catch(error){
+        return { status : false };
+    }
+}
 
 module.exports = {
     sendEmail,
@@ -539,6 +620,9 @@ module.exports = {
     getEtiqueta,
     generateExcel,
     deleteExcel,
+    verifyCaptcha,
+    deleteActivos,
+    getDataEmailDeleteActivos,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

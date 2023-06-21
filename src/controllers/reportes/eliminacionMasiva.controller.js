@@ -1,6 +1,6 @@
 const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
-const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
+const { correo_corporativo, fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
 const table = "EliminacionMasiva";
 const query_base = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}`;
@@ -69,53 +69,86 @@ const updateData = async (req,res) => {
 
 const deleteData = async (req,res)=>{
     try{
-        const { id, name_user, username, captcha } = req.body;
+        const { data, name_user, username, captcha } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        var verificationUrl = "https://www.google.com/recaptcha/api/siteverify?secret=" + secret_key_captcha + "&response=" + captcha + "&remoteip=" + req.connection.remoteAddress;
-        request(verificationUrl,async function(error,response,body) {
-            body = JSON.parse(body);
-            // Success will be true or false depending upon captcha validation.
-            if(body.success !== undefined && !body.success) {
-              return res.status(400).json({status : 400, "msg" : "Error captcha, verifique nuevamente"});
-            }
+        
+        let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
+        console.log(statusCaptcha, msg_captcha);
+        if(statusCaptcha){
             const connection = await getConnection();
-            const insert = await connection.query(`INSERT INTO adm_listado_activos_eliminados (depto,ciudad,despacho,suscriptor,radicado,rad23,fecha_registro,proceso,demandante,demandado)
-                                                    SELECT left(despacho,2),left(despacho,5),despacho,usuario,radicacion,codigo_23,fecha_registro,proceso,demandante,demandado FROM ${table} WHERE id_userope = ?`,[id]);
-            
-            if(insert.affectedRows > 0){
-                const dataEmail = await getDataEmail(connection, [group_users,group_users,id], username);
-                const result = await connection.query(`DELETE FROM ${table} WHERE id_userope = ?`,[id]);
-                if(result.affectedRows > 0){
+            if(data.length > 0){
+                let body = ``;
+                let statusSuccess = 0;
+                let statusError = 0;
+                for(let i=0;i<data.length;i++){
+                    let dataEmail = await global_c.getDataEmailDeleteActivos(connection, [group_users,data[i].id]);
+                    let { status, msg } = await global_c.deleteActivos(connection,data[i].id);
+                    if(status == 200){
+                        statusSuccess++;
+                        if(dataEmail.status){
+                            body += `<tr>
+                                        <td>${dataEmail.municipio}</td>
+                                        <td>${dataEmail.despacho}</td>
+                                        <td>${dataEmail.radicado}</td>
+                                        <td>${dataEmail.demandante}</td>
+                                        <td>${dataEmail.demandado}</td>
+                                    </tr>`;
+                        }
+                    }else{
+                        statusError++;
+                    }
+                }
+                const { status : statusParentUserEmail, data : dataParentUserEmail } = await global_c.getParentUserEmail(connection, username);
+                if(statusParentUserEmail == 200){ // Se traen datos para el envío de correo
                     const { valor:correo_comercial } = await global_c.getParameter(connection,5);
                     const { valor:web_master } = await global_c.getParameter(connection,14);
-                    if(dataEmail.status){
-                        let html = `
-                                <p style="color: #000 !important;"><b>Suscriptor:</b> ${name_user} </p>
-                                <p style="color: #000 !important;"><b>Despacho:</b> ${dataEmail.despacho} </p>
-                                <p style="color: #000 !important;"><b>Ciudad:</b> ${dataEmail.municipio} </p>
-                                <p style="color: #000 !important;"><b>Departamento:</b> ${dataEmail.departamento} </p>
-                                <p style="color: #000 !important;"><b>Radicado (9 digitos):</b> ${dataEmail.radicado} </p>
-                                <p style="color: #000 !important;"><b>Radicado (23 digitos):</b> ${dataEmail.codigo_23} </p>
-                                <p style="color: #000 !important;"><b>Tipo de Proceso:</b> ${dataEmail.proceso} </p>
-                                <p style="color: #000 !important;"><b>Demandante:</b> ${dataEmail.demandante} </p>
-                                <p style="color: #000 !important;"><b>Demandado:</b> ${dataEmail.demandado} </p>
-                            `;
-                        await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`);
-                    }
-                    connection.end();
-                    return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}`});
+                    let html = cuerpoCorreo(name_user, 'Eliminados', body, statusSuccess, statusError);
+                    await global_c.sendEmail(correo_corporativo, dataParentUserEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`);
                 }
-                connection.end();
-                return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`});
+                return res.status(200).json({status : 200, msg : "Registros eliminados correctamente. Verifique su correo electrónico para mayor información."});
+            }else{
+                return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro"});
             }
-            connection.end();
-            return res.status(400).json({status : 400, msg : `${msgDeleteErr} Procesos. ${msgTry}`, msgExtra : 'Error en inserción activos eliminados.'});
-          });
+        }else{
+            return res.status(400).json({status : 400, msg : msg_captcha});
+        }
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message });
     }
+}
+
+const cuerpoCorreo = (nameSuscriptor = '', type = '', bodyTableInfo = '', success = 0, error = 0)=>{
+    let addInfo = ``;
+    if(type == 'Eliminados'){
+        addInfo = `<p style="color: #000 !important;"><b>Mensaje:</b> El retiro de sus procesos de vigilancia judicial fueron Exitosos !!!.  Recuerde que si eliminó estos procesos por error, deberá incluirlos nuevamente.</p>`;
+    }
+    let html = `
+        <div style="word-wrap:break-word; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 16px; color:#000 !important">
+            <p style="color: #000 !important;"><b>Suscriptor:</b> ${nameSuscriptor} </p>
+            <p style="color: #000 !important;"><b>Cant. ${type} correctamente:</b> ${success} </p>
+            <p style="color: #000 !important;"><b>Cant. no ${type} correctamente:</b> ${error} </p>
+            ${addInfo}
+        </div>
+        <br>
+        <div align="center" style="padding: 0 5rem;">
+            <h2>Registros ${type}</h2>
+            <table border=1 width="100%" cellspacing=2 cellpading=2 align=left>
+                <tr align=center valign=top style=font-weight:normal;color:white;background-color:#6D84A3;>
+                    <td align=left width=80>Ciudad</td>
+                    <td align=left width=200>Despacho</td>
+                    <td align=left width=80>Radicacion</td>
+                    <td align=left width=275>Demandante</td>
+                    <td align=left width=275>Demandado</td>
+                </tr>
+                <tbody id="registrosDeleteMasivo">
+                    ${bodyTableInfo}
+                </tbody>
+            </table>
+        </div>
+    `;
+    return html;
 }
 
 const getDataId = async (req,res)=>{
