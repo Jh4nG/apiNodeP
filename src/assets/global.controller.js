@@ -6,6 +6,7 @@ const fs = require('file-system');
 const { getConnection } = require("./../database/database");
 const { type } = require('os');
 const request = require('request');
+const { stringify } = require('querystring');
 
 const correo_corporativo = 'webmaster@proviredcolombia.com';
 const d = new Date();
@@ -539,7 +540,8 @@ const verifyCaptcha = (remoteAddress, captcha) => {
                     resolve({statusCaptcha : false, msg_captcha : error});
                     return;
                 }
-                if(body.success !== undefined && !body.success) {
+                let body2 = (body != null && body != '') ? JSON.parse(body) : {success : false};
+                if(body2.success !== undefined && !body2.success) {
                     resolve({statusCaptcha : false, msg_captcha : "Error captcha, verifique nuevamente"});
                     return;
                 }

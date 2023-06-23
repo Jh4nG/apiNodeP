@@ -274,7 +274,7 @@ const exportExcel = async (req,res) =>{
             }
             return res.status(status).json({status, msg});
         }else{
-            return res.status(200).json({ status : 200, data : [], msg : msgSinInfo});
+            return res.status(400).json({ status : 400, data : [], msg : msgSinInfo});
         }
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message, url : '' });

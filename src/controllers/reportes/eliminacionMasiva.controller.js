@@ -75,7 +75,6 @@ const deleteData = async (req,res)=>{
         parent = atob(parent);
         
         let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
-        console.log(statusCaptcha, msg_captcha);
         if(statusCaptcha){
             const connection = await getConnection();
             if(data.length > 0){
@@ -132,7 +131,7 @@ const cuerpoCorreo = (nameSuscriptor = '', type = '', bodyTableInfo = '', succes
             ${addInfo}
         </div>
         <br>
-        <div align="center" style="padding: 0 5rem;">
+        <div align="center">
             <h2>Registros ${type}</h2>
             <table border=1 width="100%" cellspacing=2 cellpading=2 align=left>
                 <tr align=center valign=top style=font-weight:normal;color:white;background-color:#6D84A3;>
