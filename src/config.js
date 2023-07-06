@@ -19,5 +19,6 @@ module.exports = {
     password_mail : process.env.Password_mail,
     // Rutas locales
     autos : process.env.autos,
-    excel : process.env.excel
+    excel : process.env.excel,
+    images : process.env.images
 }

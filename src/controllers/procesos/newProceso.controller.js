@@ -63,8 +63,8 @@ const insertData = async (req,res) => {
                                 <p style="color: #000 !important;"><b>Demandante:</b> ${demandante} </p>
                                 <p style="color: #000 !important;"><b>Demandado:</b> ${demandado} </p>
                             `;
-                
-                await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Suscripcion de Nuevos Procesos", html, `${correo_comercial},${web_master}`);
+                let icono = "chulo.png";
+                await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Suscripcion de Nuevos Procesos", html, `${correo_comercial},${web_master}`,icono);
                 // Response
                 const { parametro,valor } = await global_c.getParameter(connection,23);
                 connection.end();

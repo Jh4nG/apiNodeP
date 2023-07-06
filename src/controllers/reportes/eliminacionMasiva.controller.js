@@ -76,8 +76,8 @@ const deleteData = async (req,res)=>{
         
         let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
         if(statusCaptcha){
-            const connection = await getConnection();
             if(data.length > 0){
+                const connection = await getConnection();
                 let body = ``;
                 let statusSuccess = 0;
                 let statusError = 0;
@@ -104,9 +104,10 @@ const deleteData = async (req,res)=>{
                     const { valor:correo_comercial } = await global_c.getParameter(connection,5);
                     const { valor:web_master } = await global_c.getParameter(connection,14);
                     let html = cuerpoCorreo(name_user, 'Eliminados', body, statusSuccess, statusError);
-                    await global_c.sendEmail(correo_corporativo, dataParentUserEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`);
+                    let icono = "b_drop.png";
+                    await global_c.sendEmail(correo_corporativo, dataParentUserEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`, icono);
                 }
-                return res.status(200).json({status : 200, msg : "Registros eliminados correctamente. Verifique su correo electrónico para mayor información."});
+                return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}. Verifique su correo electrónico para mayor información.`});
             }else{
                 return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro"});
             }
@@ -148,6 +149,28 @@ const cuerpoCorreo = (nameSuscriptor = '', type = '', bodyTableInfo = '', succes
         </div>
     `;
     return html;
+}
+
+const transferirData = async (req, res) => {
+    try{
+        const { data, name_user, username, captcha } = req.body;
+        let { group_users,parent } = req.body;
+        group_users = atob(group_users).split(',');
+        parent = atob(parent);
+        
+        let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
+        if(statusCaptcha){
+            if(data.length > 0){
+                const connection = await getConnection();
+            }else{
+                return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro"});
+            }
+        }else{
+            return res.status(400).json({status : 400, msg : msg_captcha});
+        }
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message });
+    }
 }
 
 const getDataId = async (req,res)=>{

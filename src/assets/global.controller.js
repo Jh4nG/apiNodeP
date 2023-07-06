@@ -144,7 +144,8 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
                         to = '',
                         subject = 'Correo Provired',
                         html = '',
-                        cc = '') => {
+                        cc = '',
+                        icono = '') => {
     try{
         // let testAccount = await nodemailer.createTestAccount();
         // create reusable transporter object using the default SMTP transport
@@ -158,6 +159,7 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
             },
         });
         let htmlBody = fs.readFileSync("./src/assets/plantillaCorreo.html", 'utf8');
+        htmlBody = htmlBody.replace('#icono',(icono != '')?`<img src="${config.images}/${icono}" width="30">`:'');
         htmlBody = htmlBody.replace('#TitleCorreo',subject);
         htmlBody = htmlBody.replace('#bodyCorreo',html);
         let parameters = {
