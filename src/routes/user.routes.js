@@ -9,7 +9,7 @@ try{
 
     router.get("/getUser/:user/:tipousuario", middleware.ensureAuthenticated, userController.getUser);
     router.get("/terminos/:user", middleware.ensureAuthenticated, userController.update_terminos);
-
+    router.get("/child/:user", middleware.ensureAuthenticated, userController.getChildParents);
     module.exports = router;
 }catch(error){
     console.log(error.message);

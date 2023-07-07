@@ -216,6 +216,28 @@ const getParentUser = async (connection, id = '')=>{
     }
 }
 
+/**
+ * Obtiene los usuarios hijos de un suscriptor
+ * @param {*} connection 
+ * @param {*} id 
+ * @returns 
+ */
+const getChildParents = async (connection, id = '')=>{
+    try{
+        if(id == '' || id == null){
+            return {status:400,msg:'El usuario es obligatorio'};
+        }
+        const result = await connection.query("SELECT nombre,cedula_nit FROM adm_clientes WHERE telefono_re = ? AND cedula_nit <> ?",[id,id]);
+        if(result.length > 0){
+            return {status:200,data:result};
+        }
+        // connection.end();
+        return {status:400,data:[]};
+    }catch(error){
+        return {status : 500, msg : error.message};
+    }
+}
+
 const getParentUserEmail = async (connection, id = '') => {
     if(id == '' || id == null){
         return {status:400,msg:'El usuario es obligatorio'};
@@ -627,6 +649,7 @@ module.exports = {
     verifyCaptcha,
     deleteActivos,
     getDataEmailDeleteActivos,
+    getChildParents,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

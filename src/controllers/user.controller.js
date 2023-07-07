@@ -41,7 +41,7 @@ const getUser = async (req,res) =>{
 const update_terminos = async (req,res) => {
     try{
         const connection = await getConnection();
-        const { user} = req.params;
+        const { user } = req.params;
         const result = await connection.query(`UPDATE adm_clientes SET fecha_modi = ?, fecha_acepta = ? WHERE cedula_nit = ?`, [fecha_actual_all,fecha_actual_all,user]);
         if(result.affectedRows == 1){
             connection.end();
@@ -54,11 +54,26 @@ const update_terminos = async (req,res) => {
     }
 }
 
+const getChildParents = async (req, res) => {
+    try{
+        const { user } = req.params;
+        if(user != undefined && user != ''){
+            const connection = await getConnection();
+            const result = await global_c.getChildParents(connection,user);
+            connection.end();
+            return res.status(result.status).json(result);
+        }
+        return res.json({ status : 400, msg : `Usuario es necesario`});
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
 
 try{
     module.exports = {
         getUser,
-        update_terminos
+        update_terminos,
+        getChildParents
     }
 }catch(error){
     console.log(error.message);
