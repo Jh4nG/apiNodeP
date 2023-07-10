@@ -241,9 +241,25 @@ const getDataInformeProcesal = async (req,res) => {
                     multiData = resultDataMultiple;
                 }
             }
+            connection.end();
             return res.status(200).json({ status : 200, cmpInfoProcesal, data, multiData});
         }
         return res.status(400).json({ status : 400, msg : 'Error en obtener data, vuevla a generar el proceso.'});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message});
+    }
+}
+
+const getDataCmpTypeInformeProcesal = async (req,res) => {
+    try{
+        const connection = await getConnection();
+        const data = await connection.query(`SELECT * FROM adm_cmp_type WHERE activo = 1`);
+        if(data.length > 0){
+            connection.end();
+            return res.status(200).json({ status : 200, data});
+        }
+        connection.end();
+        return res.status(400).json({ status : 400, msg : 'Error en obtener data, vuevla a generar la consulta.'});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message});
     }
@@ -257,7 +273,8 @@ try{
         deleteData,
         getDataId,
         exportExcel,
-        getDataInformeProcesal
+        getDataInformeProcesal,
+        getDataCmpTypeInformeProcesal
     }
 }catch(error){
     console.log(error.message);

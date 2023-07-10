@@ -153,7 +153,7 @@ const cuerpoCorreo = (nameSuscriptor = '', type = '', bodyTableInfo = '', succes
 
 const transferirData = async (req, res) => {
     try{
-        const { data, name_user, username, captcha } = req.body;
+        const { data, user_transfer, name_user, username, captcha } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
@@ -162,6 +162,10 @@ const transferirData = async (req, res) => {
         if(statusCaptcha){
             if(data.length > 0){
                 const connection = await getConnection();
+                for(let i=0;i<data.length;i++){
+                    let dataEmail = await global_c.getDataEmailDeleteActivos(connection, [group_users,data[i].id]);
+
+                }
             }else{
                 return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro"});
             }
