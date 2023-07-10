@@ -231,7 +231,7 @@ const getDataInformeProcesal = async (req,res) => {
         const resultCmpInfoProcesal = await connection.query(`SELECT * FROM adm_cmp_informe_procesal WHERE activo = 1`);
         if(resultCmpInfoProcesal.length > 0){
             let cmpInfoProcesal = resultCmpInfoProcesal;
-            let data = [];
+            let data = null;
             let multiData = [];
             const resultData = await connection.query(`SELECT * FROM adm_informe_procesal WHERE despacho = ? AND radicacion = ?`,[despacho,radicacion]);
             if(resultData.length > 0){
