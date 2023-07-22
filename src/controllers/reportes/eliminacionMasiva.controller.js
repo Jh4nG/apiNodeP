@@ -2,25 +2,49 @@ const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
 const { correo_corporativo, fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
-const table = "EliminacionMasiva";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}`;
+const table = "adm_operativos_misprocesos";
+const query_base = `SELECT SQL_CALC_FOUND_ROWS aom.id_userope, aom.user_operativo, aom.despacho, aom.radicacion, aom.fecha_registro, aom.usuario, aom.proceso, aom.demandante, aom.demandado, aom.codigo_23 
+                    ,left(aom.despacho,5) as municipio
+                    ,am.municipio as name_ciudad
+                    ,ad.despacho as name_despacho
+                    ,adp.departamento as name_departamento
+                    ,(SELECT nombre FROM adm_clientes WHERE cedula_nit = aom.usuario) as name_usuario
+                    FROM ${table} aom
+                    INNER JOIN adm_municipio am ON left(aom.despacho,5) = am.IdMun
+                    INNER JOIN adm_despacho ad ON aom.despacho = ad.IdDes
+                    INNER JOIN adm_depto adp ON left(aom.despacho,2) = adp.IdDep
+                    WHERE aom.usuario IN (?) `;
+const order_by = `order by aom.despacho, aom.radicacion`;
 
 const getData = async (req,res) => {
     try{
+        const { demandante_demandado, radicacion } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        let {status, count_rows, data, msg} = await getDataResp(group_users);
+        let {status, count_rows, data, msg} = await getDataResp(group_users, demandante_demandado, radicacion);
         return res.status(status).json({status, count_rows, data, msg});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
 }
 
-const getDataResp = async (group_users) =>{
+const getDataResp = async (group_users, demandante_demandado, radicacion) =>{
     try{
-        let params = [group_users];
-        const result = await connection.query(query_base,params);
+        let params = [group_users,group_users];
+        let sqlAdd = ``;
+        if(demandante_demandado != ''){
+            sqlAdd += ` AND (demandante LIKE ? OR demandado LIKE ?) `;
+            params.push(`%${demandante_demandado}%`,`%${demandante_demandado}%`);
+        }
+        if(radicacion != ''){
+            sqlAdd += ` AND radicacion = ? `;
+            params.push(radicacion);
+        }
+        const connection = await getConnection();
+        const result = await connection.query(`${query_base}
+                                                ${sqlAdd}
+                                                ${order_by}`, params);
         const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
         let count_rows = queryCount[0].cantidad;
         let data = [];

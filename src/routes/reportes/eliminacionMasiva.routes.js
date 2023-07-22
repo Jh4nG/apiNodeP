@@ -7,7 +7,7 @@ const middleware = require("./../../assets/middleware");
 try{
     const router = Router();
     
-    router.get("/", middleware.ensureAuthenticated, eliminacionMasivaController.getData);
+    router.post("/", middleware.ensureAuthenticated, eliminacionMasivaController.getData);
     router.post("/insert", middleware.ensureAuthenticated, eliminacionMasivaController.insertData);
     router.put("/update", middleware.ensureAuthenticated, eliminacionMasivaController.updateData);
     router.delete("/delete", middleware.ensureAuthenticated, eliminacionMasivaController.deleteData);
