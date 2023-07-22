@@ -265,6 +265,16 @@ const getDataCmpTypeInformeProcesal = async (req,res) => {
     }
 }
 
+const insertInformeProcesal = async (req,res)=>{
+    try{
+        const { cmpInfoProcesal, data, multiData } = req.body;
+        console.log(cmpInfoProcesal, data, multiData);
+        res.status(200).json({status : 200, msg : `Proceso ${msgInsertOk}`});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
         getData,
@@ -274,7 +284,8 @@ try{
         getDataId,
         exportExcel,
         getDataInformeProcesal,
-        getDataCmpTypeInformeProcesal
+        getDataCmpTypeInformeProcesal,
+        insertInformeProcesal
     }
 }catch(error){
     console.log(error.message);

@@ -15,6 +15,7 @@ try{
     router.post("/exportExcel", middleware.ensureAuthenticated, listadoProcesosActivosController.exportExcel);
     router.post("/informeProcesal", middleware.ensureAuthenticated, listadoProcesosActivosController.getDataInformeProcesal);    
     router.post("/cmpTypeInformeProcesal", middleware.ensureAuthenticated, listadoProcesosActivosController.getDataCmpTypeInformeProcesal);
+    router.post("/insertInformeProcesal", middleware.ensureAuthenticated, listadoProcesosActivosController.insertInformeProcesal);
     module.exports = router;
 }catch(error){
     console.log(error.message);
