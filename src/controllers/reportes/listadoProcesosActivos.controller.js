@@ -144,34 +144,6 @@ const deleteData = async (req,res)=>{
     }
 }
 
-const getDataEmail = async (connection, params, suscriptor) => {
-    try{
-        let dataSendEmail = {};
-        const result = await connection.query(`${query_base}
-                                                AND aom.id_userope = ?`, params);
-        if(result.length>0){
-            let res  = result[0];
-            dataSendEmail.status = true;
-            dataSendEmail.municipio = res.name_ciudad;
-            dataSendEmail.despacho = res.name_despacho;
-            dataSendEmail.departamento = res.name_departamento;
-            dataSendEmail.radicado = res.radicacion;
-            dataSendEmail.codigo_23 = res.codigo_23;
-            dataSendEmail.proceso = res.proceso;
-            dataSendEmail.demandante = res.demandante;
-            dataSendEmail.demandado = res.demandado;
-            const { status, data } = await global_c.getParentUserEmail(connection, suscriptor);
-            if(status == 200) {
-                dataSendEmail.emails = data.emails;
-            }
-            return dataSendEmail;
-        }
-        return { status : false };
-    }catch(error){
-        return { status : false };
-    }
-}
-
 const getDataId = async (req,res)=>{
     try{
         const connection = await getConnection();
@@ -268,7 +240,7 @@ const getDataCmpTypeInformeProcesal = async (req,res) => {
 const insertInformeProcesal = async (req,res)=>{
     try{
         const { cmpInfoProcesal, data, multiData } = req.body;
-        console.log(cmpInfoProcesal, data, multiData);
+        // if(data.length > 0 && )
         res.status(200).json({status : 200, msg : `Proceso ${msgInsertOk}`});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message});
