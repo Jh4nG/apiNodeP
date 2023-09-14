@@ -13,7 +13,8 @@ try{
     router.delete("/delete", middleware.ensureAuthenticated, eliminacionMasivaController.deleteData);
     router.get("/:id", middleware.ensureAuthenticated, eliminacionMasivaController.getDataId);
     router.post("/exportExcel", middleware.ensureAuthenticated, eliminacionMasivaController.exportExcel);
-    
+    router.post("/traspaso", middleware.ensureAuthenticated, eliminacionMasivaController.transferirData);
+
     module.exports = router;
 }catch(error){
     console.log(error.message);

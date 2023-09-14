@@ -128,8 +128,7 @@ const deleteData = async (req,res)=>{
                             <p style="color: #000 !important;"><b>Demandante:</b> ${dataEmail.demandante} </p>
                             <p style="color: #000 !important;"><b>Demandado:</b> ${dataEmail.demandado} </p>
                         `;
-                    let icono = "b_drop.png";
-                    await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`,icono);
+                    await global_c.sendEmail(correo_corporativo, dataEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`,'drop');
                 }
                 connection.end();
                 return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}`});

@@ -29,7 +29,7 @@ const getData = async (req,res) => {
     }
 }
 
-const getDataResp = async (group_users, demandante_demandado, radicacion) =>{
+const getDataResp = async (group_users, demandante_demandado, radicacion, id = '') =>{
     try{
         let params = [group_users,group_users];
         let sqlAdd = ``;
@@ -40,6 +40,10 @@ const getDataResp = async (group_users, demandante_demandado, radicacion) =>{
         if(radicacion != ''){
             sqlAdd += ` AND radicacion = ? `;
             params.push(radicacion);
+        }
+        if(id != ''){
+            sqlAdd += ` AND id_userope = ? `;
+            params.push(id);
         }
         const connection = await getConnection();
         const result = await connection.query(`${query_base}
@@ -105,10 +109,12 @@ const deleteData = async (req,res)=>{
                 let body = ``;
                 let statusSuccess = 0;
                 let statusError = 0;
+                let usersId = [username]; // id de usuario a quien se les envía correo
                 for(let i=0;i<data.length;i++){
                     let dataEmail = await global_c.getDataEmailDeleteActivos(connection, [group_users,data[i].id]);
                     let { status, msg } = await global_c.deleteActivos(connection,data[i].id);
                     if(status == 200){
+                        usersId.push(dataEmail.usuario);
                         statusSuccess++;
                         if(dataEmail.status){
                             body += `<tr>
@@ -123,14 +129,14 @@ const deleteData = async (req,res)=>{
                         statusError++;
                     }
                 }
-                const { status : statusParentUserEmail, data : dataParentUserEmail } = await global_c.getParentUserEmail(connection, username);
+                const { status : statusParentUserEmail, data : dataParentUserEmail } = await global_c.getParentUserEmailEspecific(connection, usersId);
                 if(statusParentUserEmail == 200){ // Se traen datos para el envío de correo
                     const { valor:correo_comercial } = await global_c.getParameter(connection,5);
                     const { valor:web_master } = await global_c.getParameter(connection,14);
                     let html = cuerpoCorreo(name_user, 'Eliminados', body, statusSuccess, statusError);
-                    let icono = "b_drop.png";
-                    await global_c.sendEmail(correo_corporativo, dataParentUserEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`, icono);
+                    await global_c.sendEmail(correo_corporativo, dataParentUserEmail.emails, "Eliminación de Vigilancia Judicial", html, `${correo_comercial},${web_master}`, 'drop');
                 }
+                connection.end();
                 return res.status(200).json({status : 200, msg : `Procesos ${msgDeleteOk}. Verifique su correo electrónico para mayor información.`});
             }else{
                 return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro"});
@@ -184,14 +190,56 @@ const transferirData = async (req, res) => {
         
         let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
         if(statusCaptcha){
-            if(data.length > 0){
+            if(data.length > 0 && user_transfer){
                 const connection = await getConnection();
+                let body = ``;
+                let statusSuccess = 0;
+                let statusError = 0;
+                let usersId = [user_transfer]; // Id de usuarios a quien se enviará correo
+                const sqlBase = `SELECT * FROM adm_clientes_misprocesos 
+                                WHERE despacho = ? AND username = ? AND radicacion = ? AND codigo_23 = ?`;
                 for(let i=0;i<data.length;i++){
                     let dataEmail = await global_c.getDataEmailDeleteActivos(connection, [group_users,data[i].id]);
-
+                    if(dataEmail.status && statusSuccess == 0 && statusError == 0){ 
+                        usersId.push(dataEmail.usuario);
+                    }
+                    let result = await connection.query(`UPDATE adm_operativos_misprocesos SET usuario = ?
+                                    WHERE id_userope = ?`, [user_transfer,data[i].id]);
+                    if(result.affectedRows > 0){
+                        let select = await connection.query(sqlBase,
+                                                            [dataEmail.despacho,user_transfer,dataEmail.radicacion,dataEmail.codigo_23]);
+                        if(!(select.length > 0)){ // No existe un registro para el usuario a asignar
+                            let obj = await connection.query(sqlBase, [dataEmail.despacho,dataEmail.usuario,dataEmail.radicacion,dataEmail.codigo_23]);
+                            if(obj.length > 0){ 
+                                obj = obj[0];
+                                await connection.query(`INSERT INTO adm_clientes_misprocesos(username,despacho,radicacion,fecha_registro,usuario,proceso,demandante,demandado,codigo_23,juzgado_origen,etiqueta_suscriptor,expediente_digital)
+                                                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+                                                        [user_transfer,obj.despacho,obj.radicacion,fecha_actual_all,obj.usuario,obj.proceso,obj.demandante,obj.demandado,obj.codigo_23,obj.juzgado_origen,obj.etiqueta_suscriptor,obj.expediente_digital]);
+                            }
+                        }
+                        body += `<tr>
+                                    <td>${dataEmail.municipio}</td>
+                                    <td>${dataEmail.despacho}</td>
+                                    <td>${dataEmail.radicado}</td>
+                                    <td>${dataEmail.demandante}</td>
+                                    <td>${dataEmail.demandado}</td>
+                                </tr>`;
+                        statusSuccess++;
+                    }else{
+                        statusError++;
+                    }                    
                 }
+                const { status : statusParentUserEmail, data : dataParentUserEmail } = await global_c.getParentUserEmailEspecific(connection, usersId);
+                if(statusParentUserEmail == 200){ // Se traen datos para el envío de correo
+                    const { valor:correo_comercial } = await global_c.getParameter(connection,5);
+                    const { valor:web_master } = await global_c.getParameter(connection,14);
+                    let html = cuerpoCorreo(name_user, 'Traspaso', body, statusSuccess, statusError);
+                    await global_c.sendEmail(correo_corporativo, dataParentUserEmail.emails, "Traspaso de Vigilancia Judicial", html, `${correo_comercial},${web_master}`, 'ok');
+                }
+                connection.end();
+                return res.status(200).json({status : 200, msg : `Procesos realizado correctamente. Verifique su correo electrónico para mayor información.`});
             }else{
-                return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro"});
+                return res.status(400).json({status : 400, msg : "No se ha seleccionado ningún registro o usuario para el traspaso."});
             }
         }else{
             return res.status(400).json({status : 400, msg : msg_captcha});
@@ -249,7 +297,8 @@ try{
         updateData,
         deleteData,
         getDataId,
-        exportExcel
+        exportExcel,
+        transferirData
     }
 }catch(error){
     console.log(error.message);

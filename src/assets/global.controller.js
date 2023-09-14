@@ -159,6 +159,14 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
             },
         });
         let htmlBody = fs.readFileSync("./src/assets/plantillaCorreo.html", 'utf8');
+        switch(icono){
+            case 'ok':
+                icono = "chulo.png";
+                break;
+            case 'drop':
+                icono = "b_drop.png";
+                break;
+        }
         htmlBody = htmlBody.replace('#icono',(icono != '')?`<img src="${config.images}/${icono}" width="30">`:'');
         htmlBody = htmlBody.replace('#TitleCorreo',subject);
         htmlBody = htmlBody.replace('#bodyCorreo',html);
@@ -243,6 +251,17 @@ const getParentUserEmail = async (connection, id = '') => {
         return {status:400,msg:'El usuario es obligatorio'};
     }
     const result = await connection.query("SELECT GROUP_CONCAT(email) as emails FROM adm_clientes WHERE telefono_re = ?",id);
+    if(result.length > 0){
+        return {status:200,data:result[0]};
+    }
+    return {status:400,data:[]};
+}
+
+const getParentUserEmailEspecific = async (connection, id = []) => {
+    if(id == '' || id == null){
+        return {status:400,msg:'El usuario es obligatorio'};
+    }
+    const result = await connection.query("SELECT GROUP_CONCAT(email) FROM adm_clientes_emails WHERE username IN(?)",id);
     if(result.length > 0){
         return {status:200,data:result[0]};
     }
@@ -606,6 +625,7 @@ const getDataEmailDeleteActivos = async (connection, params) => {
                                                 ,am.municipio as name_ciudad
                                                 ,ad.despacho as name_despacho
                                                 ,adp.departamento as name_departamento
+                                                ,(SELECT nombre FROM adm_clientes  WHERE cedula_nit = aom.usuario) as suscriptor
                                                 FROM adm_operativos_misprocesos aom
                                                 INNER JOIN adm_municipio am ON left(aom.despacho,5) = am.IdMun
                                                 INNER JOIN adm_despacho ad ON aom.despacho = ad.IdDes
@@ -623,6 +643,8 @@ const getDataEmailDeleteActivos = async (connection, params) => {
             dataSendEmail.proceso = res.proceso;
             dataSendEmail.demandante = res.demandante;
             dataSendEmail.demandado = res.demandado;
+            dataSendEmail.usuario = res.usuario;
+            dataSendEmail.suscriptor = res.suscriptor;
             return dataSendEmail;
         }
         return { status : false };
@@ -649,6 +671,7 @@ module.exports = {
     verifyCaptcha,
     deleteActivos,
     getDataEmailDeleteActivos,
+    getParentUserEmailEspecific,
     getChildParents,
     correo_corporativo,
     fecha_actual,
