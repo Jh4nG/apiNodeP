@@ -249,6 +249,7 @@ const insertInformeProcesal = async (req,res)=>{
                 for(let i = 0; i < cmpInfoProcesal.length; i++ ){
                     if(cmpInfoProcesal[i].require_cmp == 1){ // Se valida que el campo venga y con información
                         let status = await validaCamposInformeProcesal(cmpInfoProcesal[i], multiData, data);
+                        console.log(status);
                         if(status == 400){
                             return res.status(400).json({status : 400, msg : `Campo ${cmpInfoProcesal[i].name_label} es requerido.`});
                         }
@@ -273,6 +274,7 @@ const insertInformeProcesal = async (req,res)=>{
                 for(let i = 0; i < cmpInfoProcesal.length; i++ ){
                     if(cmpInfoProcesal[i].require_cmp == 1){ // Se valida que el campo venga y con información
                         let status = await validaCamposInformeProcesal(cmpInfoProcesal[i], multiData, data);
+                        console.log(status);
                         if(status == 400){
                             return res.status(400).json({status : 400, msg : `Campo ${cmpInfoProcesal[i].name_label} es requerido.`});
                         }
@@ -317,21 +319,21 @@ const insertInformeProcesal = async (req,res)=>{
 }
 
 const validaCamposInformeProcesal = async (cmpInfoProcesal, multiData, data) => {
-    new Promise ((resolve, reject)=>{
+    return new Promise ((resolve, reject)=>{
         switch(cmpInfoProcesal.multi_data){
-            case '1': // es multidata
+            case 1: // es multidata
                 let cmp = multiData.find(multi => multi.id_cmp_informe_procesal == cmpInfoProcesal.id);
                 if(cmp.value == undefined){
-                    return resolve(400);
+                    resolve(400);
                 }
                 break;
             default: 
                 if(!data[cmpInfoProcesal.name_cmp]){
-                    return resolve(400);
+                    resolve(400);
                 }
                 break;
         }
-        return resolve(200);
+        resolve(200);
     });
 }
 
