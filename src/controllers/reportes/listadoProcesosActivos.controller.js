@@ -238,12 +238,101 @@ const getDataCmpTypeInformeProcesal = async (req,res) => {
 
 const insertInformeProcesal = async (req,res)=>{
     try{
-        const { cmpInfoProcesal, data, multiData } = req.body;
-        // if(data.length > 0 && )
-        res.status(200).json({status : 200, msg : `Proceso ${msgInsertOk}`});
+        const { cmpInfoProcesal, data, multiData, despacho, radicado, usuario } = req.body;
+        if(data || multiData || despacho || radicado || usuario){
+            let keysInsert = [];
+            let countInsert = [];
+            let valueInsert = [];
+            let idForm = 0;
+            const connection = await getConnection();
+            if(data.id != undefined){ // actualiza
+                for(let i = 0; i < cmpInfoProcesal.length; i++ ){
+                    if(cmpInfoProcesal[i].require_cmp == 1){ // Se valida que el campo venga y con información
+                        let status = await validaCamposInformeProcesal(cmpInfoProcesal[i], multiData, data);
+                        if(status == 400){
+                            return res.status(400).json({status : 400, msg : `Campo ${cmpInfoProcesal[i].name_label} es requerido.`});
+                        }
+                    }
+                    if(data[cmpInfoProcesal[i].name_cmp]){ // Se valida si viene el campo para agregarlo al array e insertarlo
+                        valueInsert.push(data[cmpInfoProcesal[i].name_cmp]);
+                        countInsert.push(`${cmpInfoProcesal[i].name_cmp} = ?`);
+                    }
+                }
+                valueInsert.push(data.id);
+                countInsert = countInsert.join();
+                let query = await connection.query(`UPDATE adm_informe_procesal SET ${countInsert}
+                                    WHERE id = ?`,valueInsert);
+                if(query.affectedRows == 0){ // Se valida la actualización
+                    return res.status(400).json({status : 400, msg : `${msgUpdateErr} informe procesal. ${msgTry}`});
+                }
+                idForm = data.id;
+            }else{ // inserta
+                valueInsert.push(despacho);
+                valueInsert.push(radicado);
+                valueInsert.push(usuario);
+                for(let i = 0; i < cmpInfoProcesal.length; i++ ){
+                    if(cmpInfoProcesal[i].require_cmp == 1){ // Se valida que el campo venga y con información
+                        let status = await validaCamposInformeProcesal(cmpInfoProcesal[i], multiData, data);
+                        if(status == 400){
+                            return res.status(400).json({status : 400, msg : `Campo ${cmpInfoProcesal[i].name_label} es requerido.`});
+                        }
+                    }
+                    if(data[cmpInfoProcesal[i].name_cmp]){ // Se valida si viene el campo para agregarlo al array e insertarlo
+                        valueInsert.push(data[cmpInfoProcesal[i].name_cmp]);
+                        countInsert.push(`?`);
+                        keysInsert.push(cmpInfoProcesal[i].name_cmp);
+                        console.log(data[cmpInfoProcesal[i].name_cmp], `?`, cmpInfoProcesal[i].name_cmp);
+                    }
+                }
+                keysInsert = keysInsert.join();
+                countInsert = countInsert.join();
+                let query = await connection.query(`INSERT INTO adm_informe_procesal(despacho,radicacion,usuario_registra,${keysInsert})
+                                VALUES (?,?,?,${countInsert})`,valueInsert);
+                if(query.affectedRows == 0){ // Se valida la actualización
+                    return res.status(400).json({status : 400, msg : `${msgUpdateErr} informe procesal. ${msgTry}`});
+                }
+                idForm = query.insertId;
+            }
+            // Proceso para Multidata
+            for(let i = 0; i < multiData.length; i++ ){
+                if(multiData[i].id != undefined){ // Se actualiza
+                    await connection.query(`UPDATE adm_informe_procesal_multidata SET value = ?
+                                    WHERE id = ?`,[multiData[i].value,multiData[i].id]);
+                }else{ // Se inserta
+                    await connection.query(`INSERT INTO adm_informe_procesal_multidata(
+                        id_informe_procesal,
+                        id_cmp_informe_procesal,
+                        value,
+                        usuario_registra)
+                        VALUES (?,?,?,?)`,[idForm,multiData[i].id_cmp_informe_procesal,multiData[i].value,usuario]);
+                }
+            }
+        }else{
+            return res.status(400).json({status : 400, msg : `Información insuficiente para la inserción de información. ${msgTry}`});
+        }
+        return res.status(200).json({status : 200, msg : `Proceso Insertado/Actualizado correctamente`});
     }catch(error){
         return res.status(500).json({ status : 500, msg : error.message});
     }
+}
+
+const validaCamposInformeProcesal = async (cmpInfoProcesal, multiData, data) => {
+    new Promise ((resolve, reject)=>{
+        switch(cmpInfoProcesal.multi_data){
+            case '1': // es multidata
+                let cmp = multiData.find(multi => multi.id_cmp_informe_procesal == cmpInfoProcesal.id);
+                if(cmp.value == undefined){
+                    return resolve(400);
+                }
+                break;
+            default: 
+                if(!data[cmpInfoProcesal.name_cmp]){
+                    return resolve(400);
+                }
+                break;
+        }
+        return resolve(200);
+    });
 }
 
 try{
