@@ -16,6 +16,7 @@ const exportarExcelRoutes = require ("./routes/genericos/exportarExcel.routes");
 const listadoProcesosGeneralesRoutes = require ("./routes/reportes/listadoProcesosGenerales.routes");
 const listadoProcesosActivosRoutes = require ("./routes/reportes/listadoProcesosActivos.routes");
 const eliminacionMasivaRoutes = require ("./routes/reportes/eliminacionMasiva.routes");
+const historialProcesosRoutes = require ("./routes/reportes/historialProcesos.routes");
 //FinpathRoutes
 
 try{
@@ -45,6 +46,7 @@ try{
     app.use("/api/listadoProcesosGenerales", listadoProcesosGeneralesRoutes); 
     app.use("/api/listadoProcesosActivos", listadoProcesosActivosRoutes); 
     app.use("/api/eliminacionMasiva", eliminacionMasivaRoutes); 
+    app.use("/api/historialProcesos", historialProcesosRoutes); 
     //FinRoutes
 
     // Exportando rutas

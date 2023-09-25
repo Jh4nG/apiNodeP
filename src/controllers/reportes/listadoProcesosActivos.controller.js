@@ -249,7 +249,6 @@ const insertInformeProcesal = async (req,res)=>{
                 for(let i = 0; i < cmpInfoProcesal.length; i++ ){
                     if(cmpInfoProcesal[i].require_cmp == 1){ // Se valida que el campo venga y con información
                         let status = await validaCamposInformeProcesal(cmpInfoProcesal[i], multiData, data);
-                        console.log(status);
                         if(status == 400){
                             return res.status(400).json({status : 400, msg : `Campo ${cmpInfoProcesal[i].name_label} es requerido.`});
                         }
@@ -274,7 +273,6 @@ const insertInformeProcesal = async (req,res)=>{
                 for(let i = 0; i < cmpInfoProcesal.length; i++ ){
                     if(cmpInfoProcesal[i].require_cmp == 1){ // Se valida que el campo venga y con información
                         let status = await validaCamposInformeProcesal(cmpInfoProcesal[i], multiData, data);
-                        console.log(status);
                         if(status == 400){
                             return res.status(400).json({status : 400, msg : `Campo ${cmpInfoProcesal[i].name_label} es requerido.`});
                         }
@@ -283,7 +281,6 @@ const insertInformeProcesal = async (req,res)=>{
                         valueInsert.push(data[cmpInfoProcesal[i].name_cmp]);
                         countInsert.push(`?`);
                         keysInsert.push(cmpInfoProcesal[i].name_cmp);
-                        console.log(data[cmpInfoProcesal[i].name_cmp], `?`, cmpInfoProcesal[i].name_cmp);
                     }
                 }
                 keysInsert = keysInsert.join();

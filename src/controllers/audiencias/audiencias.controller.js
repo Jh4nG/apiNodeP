@@ -23,11 +23,6 @@ const getVencimientos = async (req,res) =>{
                                                 AND DATE(vt.fecha_vence_terminos) >= ?
                                                 ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC
                                                 LIMIT 5`,[user,fecha_actual]);
-        console.log(`${base_query}
-        WHERE vt.username = ? 
-        AND DATE(vt.fecha_vence_terminos) >= ?
-        ORDER BY vt.despacho, vt.radicacion, vt.fecha_vence_terminos DESC
-        LIMIT 5`);
         if(result.length > 0){
             connection.end();
             return res.json({ status : 200, count_rows : result.length, data : result});
@@ -202,7 +197,6 @@ const setDetalleEvento = async (type = '', data = {}) =>{
         const { fecha_vence_terminos, terminos, username, id_vencimiento } = data;
         const result = await getAudienciasIdQuery(username,id_vencimiento);
         if(result.length == 0){
-            console.log(`Error en obtener data de getAudienciasIdQuery, parametros : ${data.toString()}`);
             connection.end();
             return false;
         }
@@ -243,10 +237,8 @@ const setDetalleEvento = async (type = '', data = {}) =>{
             return true;
         }
         connection.end();
-        console.log(`Error ejecución de query en tabla adm_events para parametros ${dataQuery.toString()} desde los parámetros ${data.toString()}`);
         return false;
     }catch(error){
-        console.log(`Error ejecución ERROR: ${error.message}`);
         return false;
     }
 }

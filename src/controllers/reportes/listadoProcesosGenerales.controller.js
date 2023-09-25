@@ -47,10 +47,6 @@ const getDataResp = async (group_users, demandante_demandado, radicacion, etique
         }
 
         const connection = await getConnection();
-        console.log(`${query_base}
-        ${sqlAdd}
-        ${order_by}
-        ${(statusLimit) ? limit : ''}`,params);
         const result = await connection.query(`${query_base}
                                                 ${sqlAdd}
                                                 ${order_by}
