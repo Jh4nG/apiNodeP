@@ -10,7 +10,6 @@ const getUser = async (req,res) =>{
             'Usuario' : user,
             'Tipo usuario' : tipousuario
         };
-        console.log(dataValida);
         let valida = global_c.validateParams(dataValida);
         if(valida.status == false){
             connection.end();

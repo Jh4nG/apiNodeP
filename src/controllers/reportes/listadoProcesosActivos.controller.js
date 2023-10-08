@@ -197,8 +197,17 @@ const exportExcel = async (req,res) =>{
 const getDataInformeProcesal = async (req,res) => {
     try{
         const { username, despacho, radicacion } = req.body;
-        const connection = await getConnection();
 
+        const { status, cmpInfoProcesal, data, multiData, msg } = await getDataInformeProcesalResp(despacho, radicacion);
+        return res.status(status).json({ status, cmpInfoProcesal, data, multiData, msg});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message});
+    }
+}
+
+const getDataInformeProcesalResp = async  (despacho, radicacion)=>{
+    try{
+        const connection = await getConnection();
         const resultCmpInfoProcesal = await connection.query(`SELECT * FROM adm_cmp_informe_procesal WHERE activo = 1`);
         if(resultCmpInfoProcesal.length > 0){
             let cmpInfoProcesal = resultCmpInfoProcesal;
@@ -213,11 +222,11 @@ const getDataInformeProcesal = async (req,res) => {
                 }
             }
             connection.end();
-            return res.status(200).json({ status : 200, cmpInfoProcesal, data, multiData});
+            return { status : 200, cmpInfoProcesal, data, multiData, msg : (resultData.length > 0) ? "" : "No hay registros para mostrar"}
         }
-        return res.status(400).json({ status : 400, msg : 'Error en obtener data, vuevla a generar el proceso.'});
+        return { status : 400, msg : 'Error en obtener data, vuevla a generar el proceso.', cmpInfoProcesal:[], data:[], multiData:[], msg : ""};
     }catch(error){
-        return res.status(500).json({ status : 500, msg : error.message});
+        return { status : 500, msg : error.message, cmpInfoProcesal:[], data:[], multiData:[] };
     }
 }
 
@@ -334,6 +343,30 @@ const validaCamposInformeProcesal = async (cmpInfoProcesal, multiData, data) => 
     });
 }
 
+const exportExcelInformeProcesal = async (req,res) =>{
+    try{
+        const { username, name_user, name_file, despacho, radicacion } = req.body;
+        let { group_users, parent } = req.body;
+        group_users = atob(group_users).split(',');
+
+        let {status, cmpInfoProcesal, data, multiData, msg} = await getDataInformeProcesalResp(despacho, radicacion);
+        if(status == 200){
+            if(data){
+                const title_report = "INFORME ESTADO PROCESAL";
+                let {status, url, msg} = await global_c.generateExcelInformeProcesal(username, name_user, title_report, name_file, cmpInfoProcesal, data, multiData);
+                if(status == 200){
+                    return res.status(status).json({status, url, msg});
+                }
+                return res.status(status).json({status, msg});
+            }
+            return res.status(status).json({status, msg});
+        }
+        return res.status(status).json({status, data, msg});
+    }catch(error){
+        return res.status(500).json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
         getData,
@@ -344,7 +377,8 @@ try{
         exportExcel,
         getDataInformeProcesal,
         getDataCmpTypeInformeProcesal,
-        insertInformeProcesal
+        insertInformeProcesal,
+        exportExcelInformeProcesal
     }
 }catch(error){
     console.log(error.message);
