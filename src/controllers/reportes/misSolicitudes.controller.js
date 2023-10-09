@@ -88,15 +88,27 @@ const insertData = async (req,res) => {
 
 const updateData = async (req,res) => {
     try{
-        const connection = await getConnection();
-        const { id } = req.body;
-        const result = await connection.query(`UPDATE ${table} SET , WHERE id = ? `, [id]);
-        if(result.affectedRows > 0){
-            connection.end();
-            return res.status(200).json({status:200, msg : `MisSolicitudes ${msgUpdateOk}`});
+        const { sp_id_proceso, sp_radicacion, sp_rad_23  } = req.body;
+        
+        let dataValida = {
+            "Radicado" : sp_radicacion, 
+            "Radicado 23" : sp_rad_23,
         }
-        connection.end();
-        return res.status(400).json({status:400, msg : `${msgUpdateErr} MisSolicitudes. ${msgTry}`});
+        let valida = global_c.validateParams(dataValida);
+        let statusRad = (sp_radicacion.length == 9 && (sp_rad_23.length == 9 || sp_rad_23.length == 23) && sp_rad_23.indexOf(sp_radicacion)>=0);
+        let msgStatus = (!valida.status) ? valida.msg : `El radicado de 9 digitos no coincide con el de 23 o El radicado de 23 o de 9 no cumple con la cantidad de digitos requerida`;
+        if(valida.status && statusRad){ // Se actualiza
+            const connection = await getConnection();
+            const result = await connection.query(`UPDATE ${table} SET sp_radicacion = ?, sp_rad_23 = ? WHERE sp_id_proceso = ? `, 
+                                                    [sp_radicacion, sp_rad_23, sp_id_proceso]);
+            if(result.affectedRows > 0){
+                connection.end();
+                return res.status(200).json({status:200, msg : `Mis Solicitudes ${msgUpdateOk}`});
+            }
+            connection.end();
+            return res.status(400).json({status:400, msg : `${msgUpdateErr} Mis Solicitudes. ${msgTry}`});
+        }
+        return res.status(400).json({status : 400, msg : msgStatus});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }

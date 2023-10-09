@@ -222,7 +222,7 @@ const getDataInformeProcesalResp = async  (despacho, radicacion)=>{
                 }
             }
             connection.end();
-            return { status : 200, cmpInfoProcesal, data, multiData, msg : (resultData.length > 0) ? "" : "No hay registros para mostrar"}
+            return { status : 200, cmpInfoProcesal, data, multiData, msg : (resultData.length > 0) ? "" : `${msgSinInfo}`}
         }
         return { status : 400, msg : 'Error en obtener data, vuevla a generar el proceso.', cmpInfoProcesal:[], data:[], multiData:[], msg : ""};
     }catch(error){
