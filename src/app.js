@@ -18,6 +18,7 @@ const listadoProcesosActivosRoutes = require ("./routes/reportes/listadoProcesos
 const eliminacionMasivaRoutes = require ("./routes/reportes/eliminacionMasiva.routes");
 const historialProcesosRoutes = require ("./routes/reportes/historialProcesos.routes");
 const misSolicitudesRoutes = require ("./routes/reportes/misSolicitudes.routes");
+const impulsoProcesalRoutes = require ("./routes/reportes/impulsoProcesal.routes");
 //FinpathRoutes
 
 try{
@@ -49,6 +50,7 @@ try{
     app.use("/api/eliminacionMasiva", eliminacionMasivaRoutes); 
     app.use("/api/historialProcesos", historialProcesosRoutes); 
     app.use("/api/misSolicitudes", misSolicitudesRoutes); 
+    app.use("/api/impulsoProcesal", impulsoProcesalRoutes); 
     //FinRoutes
 
     // Exportando rutas
