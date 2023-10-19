@@ -7,7 +7,7 @@ const middleware = require("./../../assets/middleware");
 try{
     const router = Router();
     
-    router.get("/", middleware.ensureAuthenticated, impulsoProcesalController.getData);
+    router.post("/", middleware.ensureAuthenticated, impulsoProcesalController.getData);
     router.post("/insert", middleware.ensureAuthenticated, impulsoProcesalController.insertData);
     router.put("/update", middleware.ensureAuthenticated, impulsoProcesalController.updateData);
     router.delete("/delete", middleware.ensureAuthenticated, impulsoProcesalController.deleteData);

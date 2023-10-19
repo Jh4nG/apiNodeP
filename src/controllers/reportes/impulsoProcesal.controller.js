@@ -2,26 +2,103 @@ const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
-const table = "ImpulsoProcesal";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}`;
+const table = "adm_operativos_misprocesos aop";
+const query_base = `SELECT SQL_CALC_FOUND_ROWS * ,
+                    (SELECT fechapublicacion FROM adm_planillas WHERE radicacion = aop.radicacion AND despacho = aop.despacho 
+                        ORDER BY fechapublicacion DESC LIMIT 1) as fecha_ultima_actuacion
+                    FROM ${table}, adm_planillas ap
+                    WHERE aop.despacho = ap.despacho
+                    AND aop.radicacion = ap.radicacion
+                    AND usuario IN (?) `;
+const order = `ORDER BY aop.despacho,aop.radicacion ASC`;
+const limit = "LIMIT ?, ?";
 
 const getData = async (req,res) => {
     try{
+        const { depto, municipio, corporacion, despacho, rango, from, rows } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        let {status, count_rows, data, msg} = await getDataResp(group_users);
+        let {status, count_rows, data, msg} = await getDataResp(depto, municipio, corporacion, despacho, rango, group_users, from, rows);
         return res.status(status).json({status, count_rows, data, msg});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
 }
 
-const getDataResp = async (group_users) =>{
+const getDataResp = async (depto, municipio, corporacion, despacho, rango, group_users, from = 0, rows = 0, statusLimit = true) =>{
     try{
+        let query = query_base;
         let params = [group_users];
+        let sqlAdd = ``;
+        if(depto){
+            sqlAdd += ` AND aop.despacho LIKE ?`;
+            params.push(`${depto}%`);
+        }
+        if(municipio){
+            sqlAdd += ` AND aop.despacho LIKE ?`;
+            params.push(`${municipio}%`);
+        }
+        if(corporacion){
+            sqlAdd += ` AND aop.despacho LIKE ?`;
+            params.push(`${corporacion}%`);
+        }
+        if(despacho){
+            sqlAdd += ` AND aop.despacho = ?`;
+            params.push(despacho);
+        }
+        if(statusLimit){
+            params.push(from, rows);
+        }
+        let sqlPrincipal = ` AND fechapublicacion BETWEEN DATE(DATE_SUB(NOW(),INTERVAL 30 DAY)) AND NOW()
+        GROUP BY ap.radicacion,ap.despacho `;
+        switch(rango){
+            case '0': // Sin reporte
+                sqlAdd += " AND fechapublicacion BETWEEN DATE(DATE_SUB(NOW(),INTERVAL 30 DAY)) AND NOW()";
+                break;
+            case '1':
+                sqlAdd += sqlPrincipal;
+                break;
+            case '2':
+                sqlAdd += ` AND fechapublicacion BETWEEN DATE(DATE_SUB(NOW(),INTERVAL 60 DAY)) AND DATE(DATE_SUB(NOW(),INTERVAL 31 DAY))
+                            GROUP BY ap.radicacion,ap.despacho 
+                            HAVING aop.radicacion NOT IN(( 
+                                SELECT ap.radicacion 
+                                FROM adm_planillas ap2 
+                                WHERE aop.despacho = ap2.despacho 
+                                AND aop.radicacion = ap2.radicacion 
+                                AND ap2.fechapublicacion >= DATE(DATE_SUB(NOW(),INTERVAL 30 DAY)) 
+                            ))`;
+                break;
+            case '3':
+                sqlAdd += `AND fechapublicacion <= DATE(DATE_SUB(NOW(),INTERVAL 61 DAY))
+                            GROUP BY ap.radicacion,ap.despacho 
+                            HAVING aop.radicacion NOT IN(( 
+                                SELECT ap.radicacion 
+                                FROM adm_planillas ap2 
+                                WHERE aop.despacho = ap2.despacho 
+                                AND aop.radicacion = ap2.radicacion 
+                                AND ap2.fechapublicacion >= DATE(DATE_SUB(NOW(),INTERVAL 60 DAY)) 
+                            )) `;
+                break;
+            case '4':
+                query = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}
+                            WHERE usuario IN (?)
+                            HAVING radicacion NOT IN (SELECT ap.radicacion FROM adm_planillas ap WHERE ap.radicacion = aop.radicacion AND ap.despacho = aop.despacho) `;
+                break;
+            case '5':
+                query = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}
+                            WHERE usuario IN (?) `;
+                break;
+            default:
+                sqlAdd += sqlPrincipal;
+                break;
+        }
         const connection = await getConnection();
-        const result = await connection.query(query_base,params);
+        const result = await connection.query(`${query}
+                                                ${sqlAdd}
+                                                ${order}
+                                                ${(statusLimit) && limit}`,params);
         const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
         let count_rows = queryCount[0].cantidad;
         let data = [];
