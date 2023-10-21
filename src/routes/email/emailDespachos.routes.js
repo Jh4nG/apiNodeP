@@ -7,7 +7,7 @@ const middleware = require("./../../assets/middleware");
 try{
     const router = Router();
     
-    router.get("/", middleware.ensureAuthenticated, emailDespachosController.getData);
+    router.post("/", middleware.ensureAuthenticated, emailDespachosController.getData);
     router.post("/insert", middleware.ensureAuthenticated, emailDespachosController.insertData);
     router.put("/update", middleware.ensureAuthenticated, emailDespachosController.updateData);
     router.delete("/delete", middleware.ensureAuthenticated, emailDespachosController.deleteData);

@@ -2,26 +2,58 @@ const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
-const table = "EmailDespachos";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}`;
+const table = "adm_despacho ad";
+const query_base = `SELECT SQL_CALC_FOUND_ROWS ad.IdDes, ad.corporacion_IdCorp, ad.despacho, ad.localizacion, ad.operativo, ad.operativo_gc, ad.email, ad.telefono, ad.url_microservicio, ad.consulta_tiba, ad.tipo_revision, ad.tipo_revision_gc, ad.codigo_samai
+                        ,(SELECT municipio FROM adm_municipio WHERE left(ad.IdDes,5) = IdMun) as name_ciudad
+                        ,(SELECT corporacion FROM adm_corporacion WHERE left(ad.IdDes,8) = IdCorp) as name_corporacion
+                        ,(SELECT departamento FROM adm_depto WHERE left(ad.IdDes,2) = IdDep) as name_departamento
+                        FROM ${table}
+                        WHERE 1=1
+                     `;
+const order = `ORDER BY ad.IdDes ASC`;
+const limit = "LIMIT ?, ?";
 
 const getData = async (req,res) => {
     try{
+        const { depto, municipio, corporacion, despacho, from, rows } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
-        let {status, count_rows, data, msg} = await getDataResp(group_users);
+        let {status, count_rows, data, msg} = await getDataResp(depto, municipio, corporacion, despacho, from, rows);
         return res.status(status).json({status, count_rows, data, msg});
     }catch(error){
         return res.json({ status : 500, msg : error.message});
     }
 }
 
-const getDataResp = async (group_users) =>{
+const getDataResp = async (depto, municipio, corporacion, despacho, from = 0, rows = 0, statusLimit = true) =>{
     try{
-        let params = [group_users];
+        let params = [];
+        let sqlAdd = ``;
+        if(depto){
+            sqlAdd += ` AND ad.IdDes LIKE ?`;
+            params.push(`${depto}%`);
+        }
+        if(municipio){
+            sqlAdd += ` AND ad.IdDes LIKE ?`;
+            params.push(`${municipio}%`);
+        }
+        if(corporacion){
+            sqlAdd += ` AND ad.IdDes LIKE ?`;
+            params.push(`${corporacion}%`);
+        }
+        if(despacho){
+            sqlAdd += ` AND ad.IdDes = ?`;
+            params.push(despacho);
+        }
+        if(statusLimit){
+            params.push(from, rows);
+        }
         const connection = await getConnection();
-        const result = await connection.query(query_base,params);
+        const result = await connection.query(`${query_base}
+                                                ${sqlAdd}
+                                                ${order}
+                                                ${(statusLimit) ? limit : ''}`,params);
         const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
         let count_rows = queryCount[0].cantidad;
         let data = [];
