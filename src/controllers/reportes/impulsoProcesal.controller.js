@@ -1,14 +1,18 @@
 const { getConnection } = require("./../../database/database");
 const global_c = require("./../../assets/global.controller");
-const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
+const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo,convetirFecha } = global_c;
 
 const table = "adm_operativos_misprocesos aop";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS * ,
+const query_base = `SELECT SQL_CALC_FOUND_ROWS aop.id_userope, aop.user_operativo, aop.despacho, aop.radicacion, aop.fecha_registro, aop.usuario, aop.proceso, aop.demandante, aop.demandado, aop.codigo_23,
                     (SELECT fechapublicacion FROM adm_planillas WHERE radicacion = aop.radicacion AND despacho = aop.despacho 
                         ORDER BY fechapublicacion DESC LIMIT 1) as fecha_ultima_actuacion
-                    FROM ${table}, adm_planillas ap
+                    ,am.municipio as name_ciudad
+                    ,ad.despacho as name_despacho
+                    FROM ${table}, adm_planillas ap, adm_despacho ad, adm_municipio am
                     WHERE aop.despacho = ap.despacho
                     AND aop.radicacion = ap.radicacion
+                    AND aop.despacho = ad.IdDes
+                    AND left(ad.IdDes,5) = am.IdMun
                     AND usuario IN (?) `;
 const order = `ORDER BY aop.despacho,aop.radicacion ASC`;
 const limit = "LIMIT ?, ?";
@@ -98,7 +102,7 @@ const getDataResp = async (depto, municipio, corporacion, despacho, rango, group
         const result = await connection.query(`${query}
                                                 ${sqlAdd}
                                                 ${order}
-                                                ${(statusLimit) && limit}`,params);
+                                                ${(statusLimit) ? limit : ''}`,params);
         const queryCount = await connection.query(`SELECT FOUND_ROWS() as cantidad`);
         let count_rows = queryCount[0].cantidad;
         let data = [];
@@ -179,15 +183,43 @@ const getDataId = async (req,res)=>{
 
 const exportExcel = async (req,res) =>{
     try{
-        const { username, name_user, name_file } = req.body;
-        let { status, data } = await getData();
+        const { depto, municipio, corporacion, despacho, rango, username, name_user, name_file } = req.body;
+        let { group_users,parent } = req.body;
+        group_users = atob(group_users).split(',');
+        parent = atob(parent);
+        let {status, count_rows, data, msg} = await getDataResp(depto, municipio, corporacion, despacho, rango, group_users, 0, 0, false);
         if(status == 200){
             if(data.length > 0){
-                const title_report = "ImpulsoProcesal";
+                const connection = await getConnection();
+                const title_report = "Impulso Procesal";
+                const cUltimos = 10;
+                const queryBase = `SELECT descripcion,fechapublicacion 
+                                    ,(SELECT notificacion FROM adm_notificacion where id_notificacion=adm_planillas.notificacion) as notificacion
+                                    FROM adm_planillas WHERE radicacion=? and despacho=? ORDER BY fechapublicacion DESC LIMIT ${cUltimos}`;
                 const heads = [
-                    {name: "Prueba", campo : 'name_prueba', width : 15}, // Este tamaño debe ser fijo para poder respetar la imagen
-                    {name: "fechas", campo : 'fechas', width : 30, type : 'Date'},
+                    {name: "Ciudad", campo : 'name_ciudad', width : 15}, // Este tamaño debe ser fijo para poder respetar la imagen
+                    {name: "Despacho", campo : 'name_despacho', width : 30},
+                    {name: "Radicación", campo : 'radicacion', width : 15},
+                    {name: "Tipo Proceso", campo : 'proceso', width : 25},
+                    {name: "Demandante", campo : 'demandante', width : 30},
+                    {name: "Demandado", campo : 'demandado', width : 33},
+                    {name: "23 Digitos", campo : 'codigo_23', width : 35},
+                    {name: "Fecha de Registro", campo : 'fecha_ultima_actuacion', width : 25, type : 'Date'},
                 ];
+                for(let i = 1; i<=cUltimos; i++){
+                    heads.push({name: `Notificaion ${i}`, campo : `notificacion${i}`, width : 35});
+                    heads.push({name: `Descripcion ${i}`, campo : `descripcion${i}`, width : 35});
+                    heads.push({name: `Fecha ${i}`, campo : `fecha${i}`, width : 35});
+                }
+                for(let i = 0; i < data.length; i++){
+                    let {radicacion,despacho} = data[i];
+                    let query = await connection.query(queryBase,[radicacion,despacho]);
+                    for(let q=0;q<cUltimos;q++){
+                        data[i][`notificacion${(q+1)}`] = (query[q]) ? query[q].notificacion : '';
+                        data[i][`descripcion${(q+1)}`] = (query[q]) ? query[q].descripcion : '';
+                        data[i][`fecha${(q+1)}`] = (query[q]) ? convetirFecha(query[q].fechapublicacion) : '';
+                    }
+                }
                 let {status, url, msg} = await global_c.generateExcel(username, name_user, title_report, name_file, heads, data);
                 if(status == 200){
                     return res.status(status).json({status, url, msg});

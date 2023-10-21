@@ -533,9 +533,9 @@ const generateExcel = async (username, name_user, title_report, name_file, heads
                             ws.cell(row, i+1).string(convetirFecha(valor)).style(style);
                         break;
                     case 'Datetime':
-                        valor = `${convetirFecha(valor.split(' ')[0])} ${valor.split(' ')[1]}`;
-                        ws.cell(row, i+1).string(valor).style(style);
-                    break;
+                            valor = `${convetirFecha(valor.split(' ')[0])} ${valor.split(' ')[1]}`;
+                            ws.cell(row, i+1).string(valor).style(style);
+                        break;
                     default:
                         ws.cell(row, i+1).string(`${valor}`).style(style);
                         break;
@@ -849,6 +849,7 @@ module.exports = {
     getDataEmailDeleteActivos,
     getParentUserEmailEspecific,
     getChildParents,
+    convetirFecha,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,

@@ -198,13 +198,14 @@ const transferirData = async (req, res) => {
                 let usersId = [user_transfer]; // Id de usuarios a quien se enviará correo
                 const sqlBase = `SELECT * FROM adm_clientes_misprocesos 
                                 WHERE despacho = ? AND username = ? AND radicacion = ? AND codigo_23 = ?`;
+                const queryUpdate = `UPDATE adm_operativos_misprocesos SET usuario = ? WHERE id_userope = ?`;
+                const queryInsert = `INSERT INTO adm_clientes_misprocesos(username,despacho,radicacion,fecha_registro,usuario,proceso,demandante,demandado,codigo_23,juzgado_origen,etiqueta_suscriptor,expediente_digital) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`;
                 for(let i=0;i<data.length;i++){
                     let dataEmail = await global_c.getDataEmailDeleteActivos(connection, [group_users,data[i].id]);
                     if(dataEmail.status && statusSuccess == 0 && statusError == 0){ 
                         usersId.push(dataEmail.usuario);
                     }
-                    let result = await connection.query(`UPDATE adm_operativos_misprocesos SET usuario = ?
-                                    WHERE id_userope = ?`, [user_transfer,data[i].id]);
+                    let result = await connection.query(queryUpdate, [user_transfer,data[i].id]);
                     if(result.affectedRows > 0){
                         let select = await connection.query(sqlBase,
                                                             [dataEmail.despacho,user_transfer,dataEmail.radicacion,dataEmail.codigo_23]);
@@ -212,9 +213,7 @@ const transferirData = async (req, res) => {
                             let obj = await connection.query(sqlBase, [dataEmail.despacho,dataEmail.usuario,dataEmail.radicacion,dataEmail.codigo_23]);
                             if(obj.length > 0){ 
                                 obj = obj[0];
-                                await connection.query(`INSERT INTO adm_clientes_misprocesos(username,despacho,radicacion,fecha_registro,usuario,proceso,demandante,demandado,codigo_23,juzgado_origen,etiqueta_suscriptor,expediente_digital)
-                                                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-                                                        [user_transfer,obj.despacho,obj.radicacion,fecha_actual_all,obj.usuario,obj.proceso,obj.demandante,obj.demandado,obj.codigo_23,obj.juzgado_origen,obj.etiqueta_suscriptor,obj.expediente_digital]);
+                                await connection.query(queryInsert, [user_transfer,obj.despacho,obj.radicacion,fecha_actual_all,obj.usuario,obj.proceso,obj.demandante,obj.demandado,obj.codigo_23,obj.juzgado_origen,obj.etiqueta_suscriptor,obj.expediente_digital]);
                             }
                         }
                         body += `<tr>

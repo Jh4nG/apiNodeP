@@ -302,17 +302,18 @@ const insertInformeProcesal = async (req,res)=>{
                 idForm = query.insertId;
             }
             // Proceso para Multidata
+            const queryUpdate = `UPDATE adm_informe_procesal_multidata SET value = ? WHERE id = ?`;
+            const queryInsert = `INSERT INTO adm_informe_procesal_multidata(
+                                id_informe_procesal,
+                                id_cmp_informe_procesal,
+                                value,
+                                usuario_registra)
+                                VALUES (?,?,?,?)`;
             for(let i = 0; i < multiData.length; i++ ){
                 if(multiData[i].id != undefined){ // Se actualiza
-                    await connection.query(`UPDATE adm_informe_procesal_multidata SET value = ?
-                                    WHERE id = ?`,[multiData[i].value,multiData[i].id]);
+                    await connection.query(queryUpdate,[multiData[i].value,multiData[i].id]);
                 }else{ // Se inserta
-                    await connection.query(`INSERT INTO adm_informe_procesal_multidata(
-                        id_informe_procesal,
-                        id_cmp_informe_procesal,
-                        value,
-                        usuario_registra)
-                        VALUES (?,?,?,?)`,[idForm,multiData[i].id_cmp_informe_procesal,multiData[i].value,usuario]);
+                    await connection.query(queryInsert,[idForm,multiData[i].id_cmp_informe_procesal,multiData[i].value,usuario]);
                 }
             }
         }else{
