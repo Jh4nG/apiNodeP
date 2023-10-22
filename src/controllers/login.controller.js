@@ -1,6 +1,7 @@
+const md5 = require('md5');
 const { getConnection } = require("./../database/database");
 const global_c = require("./../assets/global.controller");
-const { fecha_actual, fecha_actual_all, correo_corporativo } = global_c;
+const { fecha_actual, fecha_actual_all, correo_corporativo, updatePassword } = global_c;
 
 const table_users = "adm_usuarios";
 const table_client = "adm_clientes";
@@ -31,7 +32,7 @@ const startSession = async (req,res)=>{
             return res.status(400).json({status: 400, msg : 'El USUARIO no esta creado en la base de datos de Provired Colombia !!!'});
         }
         // Si pasa, se valida contraseña a partir de la data
-        if(password === getPassword){
+        if(password === getPassword || password === md5(getPassword)){
             switch(tipousuario){
                 case 'S': // Suscriptor
                     const d = new Date();
@@ -61,6 +62,9 @@ const startSession = async (req,res)=>{
                             msg = valor;
                         }
                         // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                        if(password === getPassword){
+                            await updatePassword(getPassword,table_client,'cedula_nit',user,connection);
+                        }
                         connection.end();
                         return res.status(200).json({ status : 200, user, redirect : true, tipousuario, terminos_ok, msg });
                     }
@@ -69,6 +73,9 @@ const startSession = async (req,res)=>{
                     return res.status(400).json({ status : 400, redirect : false, tipousuario, msg : "Usuario suspendido o no autorizado." });
                 default: // Admin u operador
                     // let token = await update_token(2,user,tipousuario); // Actualiza para tener un token
+                    if(password === getPassword){
+                        await updatePassword(getPassword,table_users,'username',user,connection);
+                    }
                     connection.end();
                     return res.status(200).json({ status : 200, user, redirect : true, tipousuario });
             }

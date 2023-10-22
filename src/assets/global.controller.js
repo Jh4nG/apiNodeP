@@ -1,4 +1,5 @@
 const xl = require('excel4node');
+const md5 = require('md5');
 const util = require('util');
 const config =  require("./../config");
 const nodemailer = require("nodemailer");
@@ -828,6 +829,22 @@ const getDataEmailDeleteActivos = async (connection, params) => {
     }
 }
 
+const updatePassword = async (password,table,campo,user,connection) => {
+    try{
+        let params = [md5(password)];
+        let addSql = (table === 'adm_usuarios') ? ',password_ok = ?' : '';
+        if(table === 'adm_usuarios') params.push(md5(password));
+        params.push(user);
+        const update = await connection.query(`UPDATE ${table} SET password = ? ${addSql} WHERE ${campo} = ?`,params);
+        if(update.affectedRows > 0){
+            return true;
+        }
+        return false;
+    }catch(error){
+        return false;
+    }
+}
+
 module.exports = {
     sendEmail,
     generate_token,
@@ -850,6 +867,7 @@ module.exports = {
     getParentUserEmailEspecific,
     getChildParents,
     convetirFecha,
+    updatePassword,
     correo_corporativo,
     fecha_actual,
     fecha_actual_all,
