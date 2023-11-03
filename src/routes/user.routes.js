@@ -10,6 +10,7 @@ try{
     router.get("/getUser/:user/:tipousuario", middleware.ensureAuthenticated, userController.getUser);
     router.get("/terminos/:user", middleware.ensureAuthenticated, userController.update_terminos);
     router.get("/child/:user", middleware.ensureAuthenticated, userController.getChildParents);
+    router.put("/updatePassword", middleware.ensureAuthenticated, userController.actualizaPassword);
     module.exports = router;
 }catch(error){
     console.log(error.message);

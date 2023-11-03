@@ -3,7 +3,7 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo } = global_c;
 
 const table = "adm_clientes_misprocesos";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS acm.radicacion,acm.proceso,acm.demandante,acm.demandado,acm.codigo_23,acm.despacho as dp,ad.despacho,am.municipio,acm.despacho as idDesp, acm.expediente_digital, acm.etiqueta_suscriptor
+const query_base = `SELECT SQL_CALC_FOUND_ROWS acm.radicacion,acm.proceso,acm.demandante,acm.demandado,acm.codigo_23,acm.despacho,ad.despacho as name_despacho,am.municipio,acm.despacho as idDesp, acm.expediente_digital, acm.etiqueta_suscriptor
                     FROM ${table} acm, adm_despacho ad,adm_municipio am
                     WHERE acm.despacho = ad.IdDes
                     AND SUBSTRING(ad.IdDes,1,5) = am.IdMun`;
@@ -17,6 +17,8 @@ const query_actuacion = `SELECT SQL_CALC_FOUND_ROWS ap.idplanilla, ap.despacho a
                          WHERE ap.despacho = ad.IdDes
                          AND ap.notificacion = an.id_notificacion`;
 const order_actuacion = `ORDER BY ap.fechapublicacion DESC, ap.idplanilla ASC`;
+
+const query_prevCod23 = `SELECT * FROM adm_planillas WHERE radicacion = ? and despacho = ? AND codigo_23 = ?`;
 
 const getData = async (req,res) => {
     try{
@@ -80,24 +82,17 @@ const getDataResp = async (group_users, depto = '', municipio = '', corporacion 
 
 const getActuacion = async (req,res) => {
     try{
-        const { despacho, radicacion, fi, ff, demandante, demandado, from, rows  } = req.body;
+        const { despacho, radicacion, codigo_23, from, rows } = req.body;
         let { group_users,parent } = req.body;
         group_users = atob(group_users).split(',');
         parent = atob(parent);
         const connection = await getConnection();
         let sqlAdd = ``;
         let params = [despacho,radicacion];
-        if(fi && ff){
-            sqlAdd += ` AND ap.fechapublicacion BETWEEN ? AND ? `;
-            params.push(fi,ff);
-        }
-        if(demandante){
-            sqlAdd += ` AND ap.demandante LIKE ? `;
-            params.push(`%${demandante}%`);
-        }
-        if(demandado){
-            sqlAdd += ` AND ap.demandado LIKE ? `;
-            params.push(`%${demandado}%`);
+        const resultPrevCod23 = await connection.query(query_prevCod23,[radicacion,despacho,codigo_23]);
+        if(resultPrevCod23.length > 0){
+            sqlAdd += ` AND (codigo_23 = ? OR codigo_23 IS NULL) `;
+            params.push(codigo_23);
         }
         params.push(from, rows);
         const result = await connection.query(`${query_actuacion}

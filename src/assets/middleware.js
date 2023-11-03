@@ -7,7 +7,7 @@ exports.ensureAuthenticated = async (req,res,next) => {
         if (!req.headers.authorization) {
             return res
               .status(403)
-              .send({ message: "Tu petición no tiene cabecera de autorización" });
+              .send({ message: "Error en endpoint" });
         }
         var token = req.headers.authorization.split(" ")[1];
         // let { user,tipousuario } = req.params;

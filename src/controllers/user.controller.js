@@ -1,3 +1,4 @@
+const md5 = require('md5');
 const { getConnection } = require("./../database/database");
 const global_c = require("./../assets/global.controller");
 const { fecha_actual_all, msgUpdateOk, msgUpdateErr, msgTry, msgDataIncorrecta } = global_c;
@@ -68,11 +69,37 @@ const getChildParents = async (req, res) => {
     }
 }
 
+const actualizaPassword = async (req,res) => {
+    try{
+        const { user, tipousuario, password_actual, password_new, password_confirm } = req.body;
+        if(user != undefined && user != '' && password_new === password_confirm){
+            let table = (tipousuario == 'S') ? 'adm_clientes' : 'adm_usuarios';
+            let cmp = (tipousuario == 'S') ? 'cedula_nit' : 'username';
+            const connection = await getConnection();
+            const query = await connection.query(`SELECT * FROM ${table} WHERE ${cmp} = ?`,user);
+            if(query.length > 0){
+                let { password : getPassword } = query[0];
+                if(getPassword === md5(password_actual) || getPassword === password_actual){
+                    let status = await global_c.updatePassword(password_new,table,cmp,user,connection);
+                    connection.end();
+                    return res.status((status) ? 200 : 400).json({ status: (status) ? 200 : 400, msg : (status) ? `Contraseña ${msgUpdateOk}` : `${msgUpdateErr} contraseña. ${msgTry}`});
+                }
+                return res.status(400).json({status:400, msg:`Contraseña actual no coincide con la ingresada`});
+            }
+            return res.status(400).json({status:400, msg:`${msgUpdateErr} contraseña. ${msgTry}`});
+        }
+        return res.status(400).json({status:400, msg:`Faltan datos por ingresar o las contraseñas no coinciden.`});
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
         getUser,
         update_terminos,
-        getChildParents
+        getChildParents,
+        actualizaPassword
     }
 }catch(error){
     console.log(error.message);
