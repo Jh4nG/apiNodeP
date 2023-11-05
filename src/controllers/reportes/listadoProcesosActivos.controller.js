@@ -109,7 +109,7 @@ const deleteData = async (req,res)=>{
         group_users = atob(group_users).split(',');
         parent = atob(parent);
         let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
-        if(statusCaptcha){ // pendiente terminar el llamara a la funcion global 
+        if(statusCaptcha){ // valida captcha
             const connection = await getConnection();
             let dataEmail = await global_c.getDataEmailDeleteActivos(connection, [group_users,id]);
             let { status, msg } = await global_c.deleteActivos(connection,id);

@@ -5,17 +5,18 @@ const { fecha_actual, fecha_actual_all, correo_corporativo, updatePassword } = g
 
 const table_users = "adm_usuarios";
 const table_client = "adm_clientes";
+const msgCorrecto = "Código validado.";
+const msgIncorrecto = "Código incorrecto.";
 
 const startSession = async (req,res)=>{
     try{
-        const connection = await getConnection();
         const { user, password : getPassword } = req.body;
         if(user === undefined || getPassword === undefined){
             return res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
         }
         // Si existe el usuario en table_users entonces es admin o operador
+        const connection = await getConnection();
         var result = await connection.query(`SELECT * FROM ${table_users} WHERE username = ?`,user);
-
         if(result.length > 0){
             var { tipousuario, password } = result[0];
         }else{
@@ -30,6 +31,10 @@ const startSession = async (req,res)=>{
         if(result.length == 0){ // Si result no tiene resultados, el usuario no existe
             connection.end();
             return res.status(400).json({status: 400, msg : 'El USUARIO no esta creado en la base de datos de Provired Colombia !!!'});
+        }
+        if(tipousuario == 'S' && estado == 'C'){ // Estado de cambio de contraseña
+            connection.end();
+            return res.status(400).json({status: 400, msg : 'Por favor realice el cambio de contraseña.'});
         }
         // Si pasa, se valida contraseña a partir de la data
         if(password === getPassword || password === md5(getPassword)){
@@ -118,10 +123,140 @@ const update_token = async (type = 1,user,tipousuario) =>{
     return token;
 }
 
+const sendRecuperarContrasena = async (req,res) => {
+    try{
+        const { user } = req.params;
+        if(user === undefined){
+            return res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
+        }
+        // Si existe el usuario en table_users entonces es admin o operador
+        const connection = await getConnection();
+        var result = await connection.query(`SELECT * FROM ${table_users} WHERE username = ?`,user);
+        if(result.length > 0){
+            var { tipousuario } = result[0];
+        }else{
+            // Se realiza consulta para saber si el cliente existe
+            result = await connection.query(`SELECT * FROM ${table_client} WHERE cedula_nit = ?`,user);
+            if(result.length > 0){
+                var tipousuario = result.length > 0 ? "S" : "";
+                var { nombre, email, estado } = result[0];
+            }
+        }
+
+        if(result.length == 0){ // Si result no tiene resultados, el usuario no existe
+            connection.end();
+            return res.status(200).json({ status : 200, msg : "Correo enviado correctamente. Por favor valide su bandeja de entrada." });
+        }
+
+        if(tipousuario == 'S'){ // Se envía mensaje
+            if(estado == 'A'){
+                let token = global_c.generate_token(6);
+                global_c.updatePassword(token,table_client,'cedula_nit',user,connection); // actualiza el campo contraseña
+                result = await connection.query(`UPDATE ${table_client} SET estado = 'C' WHERE cedula_nit = ?`,user);
+                if(result.affectedRows > 0){ // Se actualiza estado
+                    let html = `
+                        <h3>Hola ${nombre}</h3>
+                        <p style="color: #000 !important;">Este es su código para el cambio de contraseña</p>
+                        <p style="color: #000 !important;"><b>${token}</b></p>
+                    `;
+                    await global_c.sendEmail(correo_corporativo, email, 'Cambio contraseña - Provired', html);
+                    connection.end();
+                    return res.status(200).json({ status : 200, msg : "Correo enviado correctamente. Por favor valide su bandeja de entrada." });
+                }else{
+                    connection.end();
+                    return res.status(400).json({ status : 400, msg : "Error, por favor vuelva a realiza el proceso." });
+                }
+            }else{
+                connection.end();
+                return res.status(400).json({ status : 400, msg : "Usuario suspendido o no autorizado." });
+            }
+        }else{
+            connection.end();
+            return res.status(400).json({ status : 400, msg : "Contacte con el administrador para realizar el cambio de contraseña." });
+        }
+        
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
+const validateCodigo = async (req,res) => {
+    try{
+        const { user, token } = req.params;
+        if(user === undefined || token === undefined){
+            return res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
+        }
+        const connection = await getConnection();
+        let valida = await validaCodigovsPassword(user,token,connection);
+        if(valida){
+            connection.end();
+            return res.status(200).json({ status : 200, msg : msgCorrecto });
+        }
+        connection.end();
+        return res.status(400).json({ status : 400, msg : msgIncorrecto });
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
+const validaCodigovsPassword = async (user,token,connection) => {
+    try{
+        let result = await connection.query(`SELECT * FROM ${table_client} WHERE cedula_nit = ?`,user);
+        if(result.length > 0){
+            var { password, estado } = result[0];
+            if(estado == 'C'){
+                if(password == md5(token)){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }catch(error){
+        return false;
+    }
+}
+
+const actializaPassword = async (req,res) => {
+    try{
+        const { user, newPassword, newPasswordConfirm, token, captcha } = req.body;
+        if(user === undefined || newPassword === undefined || newPasswordConfirm == undefined || token == undefined){
+            return res.status(400).json({status: 400, msg : 'Faltan campos que son obligatorios'});
+        }
+        if(newPassword == newPasswordConfirm){
+            let {statusCaptcha, msg_captcha} = await global_c.verifyCaptcha(req.connection.remoteAddress, captcha);
+            if(statusCaptcha){ // valida captcha
+                const connection = await getConnection();
+                let valida = await validaCodigovsPassword(user,token,connection);
+                if(valida){
+                    global_c.updatePassword(newPassword,table_client,'cedula_nit',user,connection); // actualiza el campo contraseña
+                    let result = await connection.query(`UPDATE ${table_client} SET estado = 'A' WHERE cedula_nit = ?`,user);
+                    if(result.affectedRows > 0){
+                        connection.end();
+                        return res.status(200).json({ status : 200, msg : 'Proceso realizado correctamente' });
+                    }
+                    connection.end();
+                    return res.status(400).json({ status : 400, msg : 'Error en cambio de contraseña, vuelva a realizar el proceso.' });
+                }else{
+                    connection.end();
+                    return res.status(400).json({ status : 400, msg : msgIncorrecto });
+                }
+            }else{
+                return res.status(400).json({status : 400, msg : msg_captcha});
+            }    
+        }
+        return res.status(400).json({ status : 400, msg : 'Contraseñas no coinciden' });
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
         startSession,
-        logOut
+        logOut,
+        sendRecuperarContrasena,
+        validateCodigo,
+        actializaPassword
     }
 }catch(error){
     console.log(error.message);

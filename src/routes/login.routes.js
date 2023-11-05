@@ -9,6 +9,9 @@ try{
     
     router.post("/", loginController.startSession);
     router.get("/out/:user/:tipousuario", middleware.ensureAuthenticated, loginController.logOut);
+    router.get("/sendCambio/:user", loginController.sendRecuperarContrasena);
+    router.get("/validarCodigo/:user/:token", loginController.validateCodigo);
+    router.put("/actualizaPassword", loginController.actializaPassword);
     
     module.exports = router;
 }catch(error){
