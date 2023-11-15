@@ -149,7 +149,7 @@ const sendRecuperarContrasena = async (req,res) => {
         }
 
         if(tipousuario == 'S'){ // Se envía mensaje
-            if(estado == 'A'){
+            if(estado == 'A' || estado == 'C'){
                 let token = global_c.generate_token(6);
                 global_c.updatePassword(token,table_client,'cedula_nit',user,connection); // actualiza el campo contraseña
                 result = await connection.query(`UPDATE ${table_client} SET estado = 'C' WHERE cedula_nit = ?`,user);
