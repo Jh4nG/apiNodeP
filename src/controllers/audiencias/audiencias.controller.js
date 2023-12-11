@@ -249,7 +249,7 @@ const exportExcel = async (req,res) =>{
         const connection = await getConnection();
         const rows = await connection.query(`${base_query_all}`,[username,fi,ff]);
         if(rows.length > 0){
-            const title_report = "Reporte Mis audiencias y vencimientos";
+            const title_report = "Reporte Vencimientos de Terminos";
             const heads = [
                 {name: "Ciudad", campo : 'nameCiudad', width : 15}, // Este tamaño debe ser fijo para poder respetar la imagen
                 {name: "Despacho", campo : 'nameDespacho', width : 30},

@@ -3,16 +3,19 @@ const global_c = require("./../../assets/global.controller");
 const { fecha_actual, fecha_actual_all, msgInsertOk, msgInsertErr, msgUpdateOk, msgUpdateErr, msgDeleteOk, msgDeleteErr, msgTry, msgSinInfo,convetirFecha } = global_c;
 
 const table = "adm_operativos_misprocesos aop";
-const query_base = `SELECT SQL_CALC_FOUND_ROWS aop.id_userope, aop.user_operativo, aop.despacho, aop.radicacion, aop.fecha_registro, aop.usuario, aop.proceso, aop.demandante, aop.demandado, aop.codigo_23,
-                    (SELECT fechapublicacion FROM adm_planillas WHERE radicacion = aop.radicacion AND despacho = aop.despacho 
-                        ORDER BY fechapublicacion DESC LIMIT 1) as fecha_ultima_actuacion
-                    ,am.municipio as name_ciudad
-                    ,ad.despacho as name_despacho
-                    FROM ${table}, adm_planillas ap, adm_despacho ad, adm_municipio am
+const campos = `aop.id_userope, aop.user_operativo, aop.despacho, aop.radicacion, aop.fecha_registro, aop.usuario, aop.proceso, aop.demandante, aop.demandado, aop.codigo_23,
+(SELECT fechapublicacion FROM adm_planillas WHERE radicacion = aop.radicacion AND despacho = aop.despacho 
+    ORDER BY fechapublicacion DESC LIMIT 1) as fecha_ultima_actuacion`;
+const addCamposInner = `,am.municipio as name_ciudad,ad.despacho as name_despacho`;
+const addTableInner = `, adm_despacho ad, adm_municipio am`;
+const addInner = `AND aop.despacho = ad.IdDes
+                  AND left(ad.IdDes,5) = am.IdMun`; 
+const query_base = `SELECT SQL_CALC_FOUND_ROWS ${campos}
+                    ${addCamposInner}
+                    FROM ${table}, adm_planillas ap ${addTableInner}
                     WHERE aop.despacho = ap.despacho
                     AND aop.radicacion = ap.radicacion
-                    AND aop.despacho = ad.IdDes
-                    AND left(ad.IdDes,5) = am.IdMun
+                    ${addInner}
                     AND usuario IN (?) `;
 const order = `ORDER BY aop.despacho,aop.radicacion ASC`;
 const limit = "LIMIT ?, ?";
@@ -86,13 +89,19 @@ const getDataResp = async (depto, municipio, corporacion, despacho, rango, group
                             )) `;
                 break;
             case '4':
-                query = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}
+                query = `SELECT SQL_CALC_FOUND_ROWS ${campos}
+                            ${addCamposInner}
+                            FROM ${table} ${addTableInner}
                             WHERE usuario IN (?)
+                            ${addInner}
                             HAVING radicacion NOT IN (SELECT ap.radicacion FROM adm_planillas ap WHERE ap.radicacion = aop.radicacion AND ap.despacho = aop.despacho) `;
                 break;
             case '5':
-                query = `SELECT SQL_CALC_FOUND_ROWS * FROM ${table}
-                            WHERE usuario IN (?) `;
+                query = `SELECT SQL_CALC_FOUND_ROWS ${campos}
+                            ${addCamposInner}
+                            FROM ${table} ${addTableInner}
+                            WHERE usuario IN (?) 
+                            ${addInner}`;
                 break;
             default:
                 sqlAdd += sqlPrincipal;
