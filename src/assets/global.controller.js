@@ -70,9 +70,13 @@ const generate_token = (length) => {
  * @returns 
  */
 const convetirFecha = (fecha) => {
-	var fecha = fecha.split('-').reverse();
-	fecha[1] = meses[Number(fecha[1]-1)].substr(0,3);
-	return fecha.join('-');
+    if(fecha){
+        var fecha = fecha.split('-').reverse();
+        fecha[1] = meses[Number(fecha[1]-1)].substr(0,3);
+        return fecha.join('-');
+    }else{
+        return 'N/A';
+    }
 }
 
 
