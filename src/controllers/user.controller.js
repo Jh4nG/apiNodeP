@@ -94,12 +94,23 @@ const actualizaPassword = async (req,res) => {
     }
 }
 
+const getTerminos = async (req,res) => {
+    try{
+        const connection = await getConnection();
+        const { valor, parametro } = await global_c.getParameter(connection, 8);
+        return res.json({ status : 200, msg : valor});
+    }catch(error){
+        return res.json({ status : 500, msg : error.message});
+    }
+}
+
 try{
     module.exports = {
         getUser,
         update_terminos,
         getChildParents,
-        actualizaPassword
+        actualizaPassword,
+        getTerminos
     }
 }catch(error){
     console.log(error.message);
