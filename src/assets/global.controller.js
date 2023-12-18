@@ -25,6 +25,7 @@ const msgDataIncorrecta = 'Data incorrecta o incompleta.';
 const msgSinInfo = 'No hay resultados, por favor genere una nueva consulta cambiando los filtros.';
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const secret_key_captcha = config.secret_key;
+const rutaTmpExcel = config.excel;
 
 /**
  * Verifica que los parámetros dentro del array no sean inválidos
@@ -150,7 +151,9 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
                         subject = 'Correo Provired',
                         html = '',
                         cc = '',
-                        icono = '') => {
+                        icono = '',
+                        file = false,
+                        nameFile = '') => {
     try{
         // let testAccount = await nodemailer.createTestAccount();
         // create reusable transporter object using the default SMTP transport
@@ -182,7 +185,12 @@ const sendEmail = async (from = 'webmaster@proviredcolombia.com',
             subject: subject, // Subject line
             html: htmlBody, // html body
         };
-        
+        if(file){
+            parameters['attachments'] = [{
+                filename: nameFile,
+                path: file,
+            }];
+        }
         // send mail with defined transport object
         let info = await transporter.sendMail(parameters);
     
@@ -884,5 +892,6 @@ module.exports = {
     msgTry,
     msgDataIncorrecta,
     msgSinInfo,
-    secret_key_captcha
+    secret_key_captcha,
+    rutaTmpExcel
 }

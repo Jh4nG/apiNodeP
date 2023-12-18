@@ -1,6 +1,7 @@
 const express = require ("express");
 const morgan = require ("morgan");
 const cors = require ('cors');
+const fileUpload = require('express-fileupload');
 
 // Routes
 const loginRoutes = require ("./routes/login.routes");
@@ -35,6 +36,7 @@ try{
     // Middlewares
     app.use(morgan("dev"));
     app.use(express.json());
+    app.use(fileUpload());
     
     // Routes
     app.use("/api/login", loginRoutes);
