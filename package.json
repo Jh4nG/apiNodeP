@@ -21,6 +21,7 @@
     "file-system": "^2.2.2",
     "handlebars": "^4.7.7",
     "md5": "^2.3.0",
+    "mysql": "^2.18.1",
     "nodemailer": "^6.9.1",
     "promise-mysql": "^5.2.0",
     "request": "^2.88.2"

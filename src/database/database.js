@@ -1,4 +1,4 @@
-const mysql =  require("promise-mysql");
+const mysql =  require("mysql");
 const config =  require("./../config");
 
 
