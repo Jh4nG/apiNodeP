@@ -1,5 +1,4 @@
 const config =  require("./../config");
-const { getConnection } = require("./../database/database");
 
 exports.ensureAuthenticated = async (req,res,next) => {
     try{
