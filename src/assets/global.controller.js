@@ -39,7 +39,9 @@ const meses = [
  */
 const convetirFecha = (fecha) => {
     if (fecha) {
-        var fecha = fecha.split("-").reverse();
+        if (fecha == "0000-00-00" || fecha == "0000-00-00 00:00:00")
+            return fecha?.split(" ")[0];
+        var fecha = fecha?.split("-").reverse();
         fecha[1] = meses[Number(fecha[1] - 1)].substr(0, 3);
         return fecha.join("-");
     } else {
@@ -48,40 +50,44 @@ const convetirFecha = (fecha) => {
 };
 
 const convertirFechaAFormatoDDMMYYYY = (fechaStr) => {
-    if (!fechaStr || typeof fechaStr !== "string") {
-        throw new Error("Formato de fecha inválido");
-    }
-
-    const partes = fechaStr.split("-").map(Number);
-
-    if (partes.length !== 3 || partes.some(isNaN)) {
-        throw new Error("Formato de fecha no reconocido");
-    }
-
-    let [a, b, c] = partes;
-
-    // Detectar el formato basándonos en las posiciones plausibles
-    if (a > 31) {
-        // Puede ser yyyy-mm-dd o yyyy-dd-mm
-        if (b <= 12 && c <= 31) {
-            // yyyy-mm-dd
-            return `${String(c).padStart(2, "0")}/${String(b).padStart(
-                2,
-                "0"
-            )}/${a}`;
-        } else if (c <= 12 && b <= 31) {
-            // yyyy-dd-mm
-            return `${String(b).padStart(2, "0")}/${String(c).padStart(
-                2,
-                "0"
-            )}/${a}`;
+    if (fechaStr) {
+        if (!fechaStr || typeof fechaStr !== "string") {
+            console.log("Formato de fecha inválido " + fechaStr);
+            return "";
         }
-    } else if (c > 31) {
-        // Puede ser mm-dd-yyyy
-        return `${String(b).padStart(2, "0")}/${String(a).padStart(
-            2,
-            "0"
-        )}/${c}`;
+
+        const partes = fechaStr?.split("-").map(Number);
+
+        if (partes.length !== 3 || partes.some(isNaN)) {
+            console.log("Formato de fecha no reconocido " + fechaStr);
+            return "";
+        }
+
+        let [a, b, c] = partes;
+
+        // Detectar el formato basándonos en las posiciones plausibles
+        if (a > 31) {
+            // Puede ser yyyy-mm-dd o yyyy-dd-mm
+            if (b <= 12 && c <= 31) {
+                // yyyy-mm-dd
+                return `${String(c).padStart(2, "0")}/${String(b).padStart(
+                    2,
+                    "0"
+                )}/${a}`;
+            } else if (c <= 12 && b <= 31) {
+                // yyyy-dd-mm
+                return `${String(b).padStart(2, "0")}/${String(c).padStart(
+                    2,
+                    "0"
+                )}/${a}`;
+            }
+        } else if (c > 31) {
+            // Puede ser mm-dd-yyyy
+            return `${String(b).padStart(2, "0")}/${String(a).padStart(
+                2,
+                "0"
+            )}/${c}`;
+        }
     }
 
     return "";
@@ -220,7 +226,7 @@ const generateExcel = async (
             let style = r % 2 == 0 ? styleRowGray : styleRowWhite;
             for (let i = 0; i < heads.length; i++) {
                 let objeto = rows[r];
-                let valor = objeto[heads[i].campo];
+                let valor = objeto[heads[i]?.campo];
                 let type = typeof valor;
                 if (heads[i].type != undefined) {
                     type = heads[i].type;
@@ -248,8 +254,8 @@ const generateExcel = async (
                             .style(style);
                         break;
                     case "Datetime":
-                        valor = `${convetirFecha(valor.split(" ")[0])} ${
-                            valor.split(" ")[1]
+                        valor = `${convetirFecha(valor?.split(" ")[0])} ${
+                            valor?.split(" ")[1]
                         }`;
                         ws.cell(row, i + 1)
                             .string(valor)
@@ -599,8 +605,8 @@ const generateExcelBasico = async (title_report, name_file, heads, rows) => {
                             .style(styleDate);
                         break;
                     case "Datetime":
-                        valor = `${convetirFecha(valor.split(" ")[0])} ${
-                            valor.split(" ")[1]
+                        valor = `${convetirFecha(valor?.split(" ")[0])} ${
+                            valor?.split(" ")[1]
                         }`;
                         ws.cell(row, i + 1)
                             .string(valor)
@@ -677,9 +683,9 @@ const generateExcelContinue = async (
                                 let f = convertirFechaAFormatoDDMMYYYY(valor);
                                 worksheet.getRow(row).getCell(i + 1).value =
                                     new Date(
-                                        f.split("/")[2],
-                                        f.split("/")[1] - 1,
-                                        f.split("/")[0]
+                                        f?.split("/")[2],
+                                        f?.split("/")[1] - 1,
+                                        f?.split("/")[0]
                                     );
                                 worksheet.getRow(row).getCell(i + 1).numFmt =
                                     "dd/mm/yyyy";
@@ -691,21 +697,21 @@ const generateExcelContinue = async (
                         case "Datetime":
                             if (basic) {
                                 let f = convertirFechaAFormatoDDMMYYYY(
-                                    valor.split(" ")[0]
+                                    valor?.split(" ")[0]
                                 );
                                 valor = `${new Date(
-                                    f.split("/")[2],
-                                    f.split("/")[1] - 1,
-                                    f.split("/")[0]
-                                )} ${valor.split(" ")[1]}`;
+                                    f?.split("/")[2],
+                                    f?.split("/")[1] - 1,
+                                    f?.split("/")[0]
+                                )} ${valor?.split(" ")[1]}`;
                                 worksheet.getRow(row).getCell(i + 1).value =
                                     valor;
                                 worksheet.getRow(row).getCell(i + 1).numFmt =
                                     "dd/mm/yyyy";
                                 break;
                             }
-                            valor = `${convetirFecha(valor.split(" ")[0])} ${
-                                valor.split(" ")[1]
+                            valor = `${convetirFecha(valor?.split(" ")[0])} ${
+                                valor?.split(" ")[1]
                             }`;
                             worksheet.getRow(row).getCell(i + 1).value = valor;
                             break;
